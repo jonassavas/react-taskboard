@@ -1,19 +1,19 @@
 import type {
   AuthResponse,
-  LoginRequest,
-  RegisterRequest,
-  TaskBoard,
-  TaskGroup,
-  Task,
   CreateBoardRequest,
   CreateGroupRequest,
   CreateTaskRequest,
-  UpdateTaskRequest,
-  UpdateGroupRequest,
+  LoginRequest,
+  RegisterRequest,
+  Task,
+  TaskBoard,
+  TaskGroup,
   UpdateBoardRequest,
+  UpdateGroupRequest,
+  UpdateTaskRequest,
 } from '../types';
 
-const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api';
+const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080';
 
 class ApiError extends Error {
   constructor(
@@ -83,39 +83,42 @@ export const authApi = {
 
 export const boardsApi = {
   getAll: (): Promise<TaskBoard[]> =>
-    request<TaskBoard[]>('/boards'),
+    request<TaskBoard[]>('/taskboards'),
+
+  getById: (boardId: number): Promise<TaskBoard> =>
+    request<TaskBoard>(`/taskboards/${boardId}`),
 
   create: (data: CreateBoardRequest): Promise<TaskBoard> =>
-    request<TaskBoard>('/boards', {
+    request<TaskBoard>('/taskboards', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
 
   update: (id: number, data: UpdateBoardRequest): Promise<TaskBoard> =>
-    request<TaskBoard>(`/boards/${id}`, {
-      method: 'PUT',
+    request<TaskBoard>(`/taskboards/${id}`, {
+      method: 'PATCH',
       body: JSON.stringify(data),
     }),
 
   delete: (id: number): Promise<void> =>
-    request<void>(`/boards/${id}`, { method: 'DELETE' }),
+    request<void>(`/taskboards/${id}`, { method: 'DELETE' }),
 };
 
 export const groupsApi = {
   create: (boardId: number, data: CreateGroupRequest): Promise<TaskGroup> =>
-    request<TaskGroup>(`/boards/${boardId}/groups`, {
+    request<TaskGroup>(`/taskboards/${boardId}/groups`, {
       method: 'POST',
       body: JSON.stringify(data),
     }),
 
   update: (boardId: number, groupId: number, data: UpdateGroupRequest): Promise<TaskGroup> =>
-    request<TaskGroup>(`/boards/${boardId}/groups/${groupId}`, {
-      method: 'PUT',
+    request<TaskGroup>(`/taskboards/${boardId}/groups/${groupId}`, {
+      method: 'PATCH',
       body: JSON.stringify(data),
     }),
 
   delete: (boardId: number, groupId: number): Promise<void> =>
-    request<void>(`/boards/${boardId}/groups/${groupId}`, { method: 'DELETE' }),
+    request<void>(`/taskboards/${boardId}/groups/${groupId}`, { method: 'DELETE' }),
 };
 
 export const tasksApi = {
@@ -127,7 +130,7 @@ export const tasksApi = {
 
   update: (taskId: number, data: UpdateTaskRequest): Promise<Task> =>
     request<Task>(`/tasks/${taskId}`, {
-      method: 'PUT',
+      method: 'PATCH',
       body: JSON.stringify(data),
     }),
 
@@ -135,10 +138,11 @@ export const tasksApi = {
     request<void>(`/tasks/${taskId}`, { method: 'DELETE' }),
 
   move: (taskId: number, data: { groupId: number; position: number }): Promise<Task> =>
-    request<Task>(`/tasks/${taskId}/move`, {
+    request<Task>(`/tasks/${taskId}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     }),
 };
 
 export { ApiError };
+

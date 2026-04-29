@@ -1,5 +1,5 @@
+import { ApiError, authApi, boardsApi } from '../services/api';
 import { useStore } from '../store/AppStore';
-import { authApi, ApiError } from '../services/api';
 import type { LoginRequest, RegisterRequest } from '../types';
 
 export function useAuth() {
@@ -10,12 +10,14 @@ export function useAuth() {
     dispatch({ type: 'SET_ERROR', payload: null });
     try {
       const response = await authApi.login(data);
+      localStorage.setItem('jwt_token', response.token);
+      const boards = await boardsApi.getAll();
       dispatch({
         type: 'AUTH_SUCCESS',
         payload: {
-          user: response.state.user,
+          user: response.user,
           token: response.token,
-          boards: response.state.taskBoards,
+          boards,
         },
       });
     } catch (err) {
@@ -32,12 +34,14 @@ export function useAuth() {
     dispatch({ type: 'SET_ERROR', payload: null });
     try {
       const response = await authApi.register(data);
+      localStorage.setItem('jwt_token', response.token);
+      const boards = await boardsApi.getAll();
       dispatch({
         type: 'AUTH_SUCCESS',
         payload: {
-          user: response.state.user,
+          user: response.user,
           token: response.token,
-          boards: response.state.taskBoards,
+          boards,
         },
       });
     } catch (err) {
