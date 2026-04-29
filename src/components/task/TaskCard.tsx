@@ -4,29 +4,24 @@ import styles from './TaskCard.module.css';
 
 interface Props {
   task: Task;
-  onUpdate: (taskId: number, data: { title?: string; description?: string }) => Promise<void>;
+  onUpdate: (taskId: number, data: { taskName?: string }) => Promise<void>;
   onDelete: (taskId: number) => Promise<void>;
 }
 
 export function TaskCard({ task, onUpdate, onDelete }: Props) {
   const [isEditing, setIsEditing] = useState(false);
-  const [title, setTitle] = useState(task.title);
-  const [description, setDescription] = useState(task.description ?? '');
+  const [taskName, setTaskName] = useState(task.taskName);
 
   async function handleSave() {
-    if (!title.trim()) return;
-    await onUpdate(task.id, {
-      title: title.trim(),
-      description: description.trim() || undefined,
-    });
+    if (!taskName.trim()) return;
+    await onUpdate(task.id, { taskName: taskName.trim() });
     setIsEditing(false);
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Enter' && e.metaKey) handleSave();
+    if (e.key === 'Enter') handleSave();
     if (e.key === 'Escape') {
-      setTitle(task.title);
-      setDescription(task.description ?? '');
+      setTaskName(task.taskName);
       setIsEditing(false);
     }
   }
@@ -35,27 +30,18 @@ export function TaskCard({ task, onUpdate, onDelete }: Props) {
     return (
       <div className={`${styles.card} ${styles.editing}`}>
         <input
-          className={styles.editTitle}
-          value={title}
-          onChange={e => setTitle(e.target.value)}
+          className={styles.editInput}
+          value={taskName}
+          onChange={e => setTaskName(e.target.value)}
           onKeyDown={handleKeyDown}
           autoFocus
-        />
-        <textarea
-          className={styles.editDesc}
-          value={description}
-          onChange={e => setDescription(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Add a description… (optional)"
-          rows={3}
         />
         <div className={styles.editActions}>
           <button className={styles.saveBtn} onClick={handleSave}>Save</button>
           <button
             className={styles.cancelBtn}
             onClick={() => {
-              setTitle(task.title);
-              setDescription(task.description ?? '');
+              setTaskName(task.taskName);
               setIsEditing(false);
             }}
           >
@@ -68,12 +54,7 @@ export function TaskCard({ task, onUpdate, onDelete }: Props) {
 
   return (
     <div className={styles.card} role="listitem">
-      <div className={styles.content}>
-        <p className={styles.title}>{task.title}</p>
-        {task.description && (
-          <p className={styles.description}>{task.description}</p>
-        )}
-      </div>
+      <p className={styles.title}>{task.taskName}</p>
       <div className={styles.actions}>
         <button
           className={styles.actionBtn}
@@ -88,7 +69,7 @@ export function TaskCard({ task, onUpdate, onDelete }: Props) {
         <button
           className={`${styles.actionBtn} ${styles.deleteBtn}`}
           onClick={async () => {
-            if (confirm(`Delete "${task.title}"?`)) {
+            if (confirm(`Delete "${task.taskName}"?`)) {
               await onDelete(task.id);
             }
           }}

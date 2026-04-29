@@ -12,31 +12,38 @@ import type {
 export function useBoards() {
   const { state, dispatch } = useStore();
 
-  const activeBoard = state.boards.find(b => b.id === state.activeBoardId) ?? null;
+  const activeBoardId =
+    state.view.type === 'BOARD' ? state.view.boardId : null;
 
-  function setActiveBoard(boardId: number) {
-    dispatch({ type: 'SET_ACTIVE_BOARD', payload: boardId });
+  const activeBoard = activeBoardId
+    ? state.loadedBoards[activeBoardId] ?? null
+    : null;
+
+  // Open a board — fetches full data from backend
+  async function openBoard(boardId: number) {
+    dispatch({ type: 'SET_BOARD_LOADING', payload: true });
+    dispatch({ type: 'SET_ERROR', payload: null });
+    try {
+      const board = await boardsApi.getById(boardId);
+      dispatch({ type: 'BOARD_LOADED', payload: board });
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : 'Failed to load board';
+      dispatch({ type: 'SET_ERROR', payload: msg });
+      dispatch({ type: 'SET_BOARD_LOADING', payload: false });
+    }
+  }
+
+  function goToBoardsList() {
+    dispatch({ type: 'SET_VIEW', payload: { type: 'BOARDS_LIST' } });
   }
 
   async function createBoard(data: CreateBoardRequest) {
     try {
-      const board = await boardsApi.create(data);
-      dispatch({ type: 'ADD_BOARD', payload: board });
-      return board;
+      const summary = await boardsApi.create(data);
+      dispatch({ type: 'ADD_BOARD_SUMMARY', payload: summary });
+      return summary;
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : 'Failed to create board';
-      dispatch({ type: 'SET_ERROR', payload: msg });
-      throw err;
-    }
-  }
-
-  async function updateBoard(id: number, data: UpdateBoardRequest) {
-    try {
-      const board = await boardsApi.update(id, data);
-      dispatch({ type: 'UPDATE_BOARD', payload: board });
-      return board;
-    } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Failed to update board';
       dispatch({ type: 'SET_ERROR', payload: msg });
       throw err;
     }
@@ -59,7 +66,7 @@ export function useBoards() {
       dispatch({ type: 'ADD_GROUP', payload: { boardId, group } });
       return group;
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Failed to create group';
+      const msg = err instanceof ApiError ? err.message : 'Failed to create column';
       dispatch({ type: 'SET_ERROR', payload: msg });
       throw err;
     }
@@ -71,7 +78,7 @@ export function useBoards() {
       dispatch({ type: 'UPDATE_GROUP', payload: { boardId, group } });
       return group;
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Failed to update group';
+      const msg = err instanceof ApiError ? err.message : 'Failed to update column';
       dispatch({ type: 'SET_ERROR', payload: msg });
       throw err;
     }
@@ -82,7 +89,7 @@ export function useBoards() {
       await groupsApi.delete(boardId, groupId);
       dispatch({ type: 'DELETE_GROUP', payload: { boardId, groupId } });
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Failed to delete group';
+      const msg = err instanceof ApiError ? err.message : 'Failed to delete column';
       dispatch({ type: 'SET_ERROR', payload: msg });
       throw err;
     }
@@ -123,31 +130,14 @@ export function useBoards() {
     }
   }
 
-  async function moveTask(
-    boardId: number,
-    taskId: number,
-    fromGroupId: number,
-    toGroupId: number,
-    position: number
-  ) {
-    try {
-      const task = await tasksApi.move(taskId, { groupId: toGroupId, position });
-      dispatch({ type: 'MOVE_TASK', payload: { boardId, task, fromGroupId } });
-      return task;
-    } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Failed to move task';
-      dispatch({ type: 'SET_ERROR', payload: msg });
-      throw err;
-    }
-  }
-
   return {
-    boards: state.boards,
+    boardSummaries: state.boardSummaries,
     activeBoard,
-    activeBoardId: state.activeBoardId,
-    setActiveBoard,
+    activeBoardId,
+    isBoardLoading: state.isBoardLoading,
+    openBoard,
+    goToBoardsList,
     createBoard,
-    updateBoard,
     deleteBoard,
     createGroup,
     updateGroup,
@@ -155,6 +145,5 @@ export function useBoards() {
     createTask,
     updateTask,
     deleteTask,
-    moveTask,
   };
 }

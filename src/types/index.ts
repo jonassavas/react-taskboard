@@ -1,6 +1,12 @@
+export interface User {
+  id: number;
+  username: string;
+  email: string;
+}
+
 export interface Task {
   id: number;
-  taskName: string; 
+  taskName: string;
   taskGroupId: number;
 }
 
@@ -13,14 +19,14 @@ export interface TaskGroup {
 
 export interface TaskBoard {
   id: number;
-  taskBoardName: string;  
+  taskBoardName: string;
   taskGroups: TaskGroup[];
 }
 
-export interface User {
+// Lightweight version returned by GET /taskboards (list view)
+export interface TaskBoardSummary {
   id: number;
-  username: string;
-  email: string;
+  taskBoardName: string;
 }
 
 export interface AuthResponse {
@@ -29,7 +35,6 @@ export interface AuthResponse {
   user: User;
 }
 
-// Request types stay the same
 export interface LoginRequest {
   username: string;
   password: string;
@@ -66,4 +71,9 @@ export interface UpdateGroupRequest {
 export interface UpdateTaskRequest {
   taskName?: string;
   taskGroupId?: number;
+}
+
+export interface ApiError {
+  message: string;
+  status: number;
 }

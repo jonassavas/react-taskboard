@@ -5,9 +5,10 @@ import styles from './BoardView.module.css';
 
 export function BoardView() {
   const {
-    boards,
     activeBoard,
     activeBoardId,
+    isBoardLoading,
+    goToBoardsList,
     createGroup,
     updateGroup,
     deleteGroup,
@@ -17,40 +18,43 @@ export function BoardView() {
   } = useBoards();
 
   const [isAddingGroup, setIsAddingGroup] = useState(false);
-  const [newGroupTitle, setNewGroupTitle] = useState('');
+  const [newGroupName, setNewGroupName] = useState('');
 
-  if (!activeBoard) {
+  if (isBoardLoading) {
     return (
-      <div className={styles.empty}>
-        {boards.length === 0 ? (
-          <>
-            <p className={styles.emptyTitle}>No boards yet</p>
-            <p className={styles.emptySubtitle}>Create a board from the sidebar to get started</p>
-          </>
-        ) : (
-          <p className={styles.emptyTitle}>Select a board</p>
-        )}
+      <div className={styles.loading}>
+        <p>Loading board…</p>
       </div>
     );
   }
 
-  const sortedGroups = [...activeBoard.taskGroups].sort((a, b) => a.position - b.position);
+  if (!activeBoard) return null;
+
+  const sortedGroups = [...activeBoard.taskGroups].sort((a, b) => a.id - b.id);
 
   async function handleCreateGroup(e: React.FormEvent) {
     e.preventDefault();
-    if (!newGroupTitle.trim() || !activeBoardId) return;
-    await createGroup(activeBoardId, { title: newGroupTitle.trim(), boardId: activeBoardId });
-    setNewGroupTitle('');
+    if (!newGroupName.trim() || !activeBoardId) return;
+    await createGroup(activeBoardId, {
+      taskGroupName: newGroupName.trim(),
+      taskBoardId: activeBoardId,
+    });
+    setNewGroupName('');
     setIsAddingGroup(false);
   }
 
   return (
     <div className={styles.wrapper}>
       <div className={styles.header}>
-        <h1 className={styles.boardTitle}>{activeBoard.title}</h1>
-        {activeBoard.description && (
-          <p className={styles.boardDesc}>{activeBoard.description}</p>
-        )}
+        <div className={styles.headerLeft}>
+          <button className={styles.backBtn} onClick={goToBoardsList}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+            Boards
+          </button>
+          <h1 className={styles.boardTitle}>{activeBoard.taskBoardName}</h1>
+        </div>
       </div>
 
       <div className={styles.columns}>
@@ -66,7 +70,7 @@ export function BoardView() {
               await deleteGroup(activeBoard.id, groupId);
             }}
             onCreateTask={async (groupId, data) => {
-              await createTask(activeBoard.id, groupId, { ...data, groupId });
+              await createTask(activeBoard.id, groupId, data);
             }}
             onUpdateTask={async (taskId, data) => {
               await updateTask(activeBoard.id, taskId, data);
@@ -83,8 +87,8 @@ export function BoardView() {
               className={styles.newGroupInput}
               type="text"
               placeholder="Column name"
-              value={newGroupTitle}
-              onChange={e => setNewGroupTitle(e.target.value)}
+              value={newGroupName}
+              onChange={e => setNewGroupName(e.target.value)}
               autoFocus
             />
             <div className={styles.newGroupActions}>
@@ -92,7 +96,7 @@ export function BoardView() {
               <button
                 className={styles.cancelBtn}
                 type="button"
-                onClick={() => { setIsAddingGroup(false); setNewGroupTitle(''); }}
+                onClick={() => { setIsAddingGroup(false); setNewGroupName(''); }}
               >
                 Cancel
               </button>

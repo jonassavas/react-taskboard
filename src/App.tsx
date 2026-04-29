@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { StoreProvider, useStore } from './store/AppStore';
 import { AuthPage } from './components/auth/AuthPage';
-import { Sidebar } from './components/board/Sidebar';
+import { BoardsListPage } from './components/board/BoardsListPage';
 import { BoardView } from './components/board/BoardView';
 import { boardsApi } from './services/api';
 import styles from './App.module.css';
@@ -9,25 +9,37 @@ import styles from './App.module.css';
 function AppInner() {
   const { state, dispatch } = useStore();
 
-  // Load boards after token hydration from localStorage
+  // On refresh: token is hydrated from localStorage but summaries aren't —
+  // re-fetch them so the boards list page works after a page reload
   useEffect(() => {
-    if (state.token && state.boards.length === 0) {
+    if (state.token && state.boardSummaries.length === 0) {
       boardsApi.getAll()
-        .then(boards => dispatch({ type: 'SET_BOARDS', payload: boards }))
-        .catch(() => {});
+        .then(summaries => {
+          // Dispatch a lightweight summaries-only update
+          if (state.user) {
+            dispatch({
+              type: 'AUTH_SUCCESS',
+              payload: { user: state.user, token: state.token!, summaries },
+            });
+          }
+        })
+        .catch(() => {
+          // Token is invalid/expired — log out cleanly
+          dispatch({ type: 'LOGOUT' });
+        });
     }
   }, [state.token]);
 
+  // Not logged in — show auth page
   if (!state.user || !state.token) {
     return <AuthPage />;
   }
 
   return (
-    <div className={styles.layout}>
-      <Sidebar />
-      <main className={styles.main}>
-        <BoardView />
-      </main>
+    <div className={styles.app}>
+      {state.view.type === 'BOARDS_LIST' && <BoardsListPage />}
+      {state.view.type === 'BOARD' && <BoardView />}
+
       {state.error && (
         <div className={styles.toast} role="alert">
           {state.error}

@@ -1,16 +1,17 @@
 import type {
   AuthResponse,
+  LoginRequest,
+  RegisterRequest,
+  TaskBoard,
+  TaskBoardSummary,
+  TaskGroup,
+  Task,
   CreateBoardRequest,
   CreateGroupRequest,
   CreateTaskRequest,
-  LoginRequest,
-  RegisterRequest,
-  Task,
-  TaskBoard,
-  TaskGroup,
-  UpdateBoardRequest,
-  UpdateGroupRequest,
   UpdateTaskRequest,
+  UpdateGroupRequest,
+  UpdateBoardRequest,
 } from '../types';
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080';
@@ -63,7 +64,6 @@ async function request<T>(
   }
 
   if (response.status === 204) return undefined as T;
-
   return response.json() as Promise<T>;
 }
 
@@ -82,20 +82,22 @@ export const authApi = {
 };
 
 export const boardsApi = {
-  getAll: (): Promise<TaskBoard[]> =>
-    request<TaskBoard[]>('/taskboards'),
+  // Returns lightweight list — no groups/tasks
+  getAll: (): Promise<TaskBoardSummary[]> =>
+    request<TaskBoardSummary[]>('/taskboards'),
 
+  // Returns full board with groups and tasks
   getById: (boardId: number): Promise<TaskBoard> =>
     request<TaskBoard>(`/taskboards/${boardId}`),
 
-  create: (data: CreateBoardRequest): Promise<TaskBoard> =>
-    request<TaskBoard>('/taskboards', {
+  create: (data: CreateBoardRequest): Promise<TaskBoardSummary> =>
+    request<TaskBoardSummary>('/taskboards', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
 
-  update: (id: number, data: UpdateBoardRequest): Promise<TaskBoard> =>
-    request<TaskBoard>(`/taskboards/${id}`, {
+  update: (id: number, data: UpdateBoardRequest): Promise<TaskBoardSummary> =>
+    request<TaskBoardSummary>(`/taskboards/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     }),
@@ -136,13 +138,6 @@ export const tasksApi = {
 
   delete: (taskId: number): Promise<void> =>
     request<void>(`/tasks/${taskId}`, { method: 'DELETE' }),
-
-  move: (taskId: number, data: { groupId: number; position: number }): Promise<Task> =>
-    request<Task>(`/tasks/${taskId}`, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    }),
 };
 
 export { ApiError };
-

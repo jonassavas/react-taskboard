@@ -1,5 +1,5 @@
-import { ApiError, authApi, boardsApi } from '../services/api';
 import { useStore } from '../store/AppStore';
+import { authApi, boardsApi, ApiError } from '../services/api';
 import type { LoginRequest, RegisterRequest } from '../types';
 
 export function useAuth() {
@@ -10,17 +10,23 @@ export function useAuth() {
     dispatch({ type: 'SET_ERROR', payload: null });
     try {
       const response = await authApi.login(data);
+
+      // Store token immediately so subsequent calls can use it
       localStorage.setItem('jwt_token', response.token);
-      const boards = await boardsApi.getAll();
+
+      // Fetch board summaries — empty array is fine (new user with no boards)
+      const summaries = await boardsApi.getAll().catch(() => []);
+
       dispatch({
         type: 'AUTH_SUCCESS',
         payload: {
           user: response.user,
           token: response.token,
-          boards,
+          summaries,
         },
       });
     } catch (err) {
+      localStorage.removeItem('jwt_token');
       const msg = err instanceof ApiError ? err.message : 'Login failed';
       dispatch({ type: 'SET_ERROR', payload: msg });
       throw err;
@@ -34,17 +40,22 @@ export function useAuth() {
     dispatch({ type: 'SET_ERROR', payload: null });
     try {
       const response = await authApi.register(data);
+
       localStorage.setItem('jwt_token', response.token);
-      const boards = await boardsApi.getAll();
+
+      // New user will have no boards — that's fine
+      const summaries = await boardsApi.getAll().catch(() => []);
+
       dispatch({
         type: 'AUTH_SUCCESS',
         payload: {
           user: response.user,
           token: response.token,
-          boards,
+          summaries,
         },
       });
     } catch (err) {
+      localStorage.removeItem('jwt_token');
       const msg = err instanceof ApiError ? err.message : 'Registration failed';
       dispatch({ type: 'SET_ERROR', payload: msg });
       throw err;

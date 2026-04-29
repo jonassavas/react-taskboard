@@ -6,10 +6,10 @@ import styles from './TaskGroupColumn.module.css';
 interface Props {
   group: TaskGroup;
   boardId: number;
-  onUpdateGroup: (groupId: number, data: { title?: string }) => Promise<void>;
+  onUpdateGroup: (groupId: number, data: { taskGroupName?: string }) => Promise<void>;
   onDeleteGroup: (groupId: number) => Promise<void>;
-  onCreateTask: (groupId: number, data: { title: string; description?: string }) => Promise<void>;
-  onUpdateTask: (taskId: number, data: { title?: string; description?: string }) => Promise<void>;
+  onCreateTask: (groupId: number, data: { taskName: string; taskGroupId: number }) => Promise<void>;
+  onUpdateTask: (taskId: number, data: { taskName?: string }) => Promise<void>;
   onDeleteTask: (groupId: number, taskId: number) => Promise<void>;
 }
 
@@ -22,32 +22,28 @@ export function TaskGroupColumn({
   onDeleteTask,
 }: Props) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [groupTitle, setGroupTitle] = useState(group.title);
+  const [groupName, setGroupName] = useState(group.taskGroupName);
   const [isAddingTask, setIsAddingTask] = useState(false);
-  const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [newTaskDesc, setNewTaskDesc] = useState('');
-
-  const sortedTasks = [...group.tasks].sort((a, b) => a.position - b.position);
+  const [newTaskName, setNewTaskName] = useState('');
 
   async function handleTitleSave() {
-    if (!groupTitle.trim()) {
-      setGroupTitle(group.title);
+    if (!groupName.trim()) {
+      setGroupName(group.taskGroupName);
       setIsEditingTitle(false);
       return;
     }
-    await onUpdateGroup(group.id, { title: groupTitle.trim() });
+    await onUpdateGroup(group.id, { taskGroupName: groupName.trim() });
     setIsEditingTitle(false);
   }
 
   async function handleAddTask(e: React.FormEvent) {
     e.preventDefault();
-    if (!newTaskTitle.trim()) return;
+    if (!newTaskName.trim()) return;
     await onCreateTask(group.id, {
-      title: newTaskTitle.trim(),
-      description: newTaskDesc.trim() || undefined,
+      taskName: newTaskName.trim(),
+      taskGroupId: group.id,
     });
-    setNewTaskTitle('');
-    setNewTaskDesc('');
+    setNewTaskName('');
     setIsAddingTask(false);
   }
 
@@ -57,13 +53,13 @@ export function TaskGroupColumn({
         {isEditingTitle ? (
           <input
             className={styles.titleInput}
-            value={groupTitle}
-            onChange={e => setGroupTitle(e.target.value)}
+            value={groupName}
+            onChange={e => setGroupName(e.target.value)}
             onBlur={handleTitleSave}
             onKeyDown={e => {
               if (e.key === 'Enter') handleTitleSave();
               if (e.key === 'Escape') {
-                setGroupTitle(group.title);
+                setGroupName(group.taskGroupName);
                 setIsEditingTitle(false);
               }
             }}
@@ -74,14 +70,14 @@ export function TaskGroupColumn({
             className={styles.titleBtn}
             onClick={() => setIsEditingTitle(true)}
           >
-            <span className={styles.title}>{group.title}</span>
+            <span className={styles.title}>{group.taskGroupName}</span>
             <span className={styles.count}>{group.tasks.length}</span>
           </button>
         )}
         <button
           className={styles.deleteGroupBtn}
           onClick={async () => {
-            if (confirm(`Delete column "${group.title}" and all its tasks?`)) {
+            if (confirm(`Delete column "${group.taskGroupName}" and all its tasks?`)) {
               await onDeleteGroup(group.id);
             }
           }}
@@ -92,7 +88,7 @@ export function TaskGroupColumn({
       </div>
 
       <div className={styles.tasks} role="list">
-        {sortedTasks.map(task => (
+        {group.tasks.map(task => (
           <TaskCard
             key={task.id}
             task={task}
@@ -107,17 +103,10 @@ export function TaskGroupColumn({
           <input
             className={styles.addTaskInput}
             type="text"
-            placeholder="Task title"
-            value={newTaskTitle}
-            onChange={e => setNewTaskTitle(e.target.value)}
+            placeholder="Task name"
+            value={newTaskName}
+            onChange={e => setNewTaskName(e.target.value)}
             autoFocus
-          />
-          <textarea
-            className={styles.addTaskDesc}
-            placeholder="Description (optional)"
-            value={newTaskDesc}
-            onChange={e => setNewTaskDesc(e.target.value)}
-            rows={2}
           />
           <div className={styles.addTaskActions}>
             <button className={styles.confirmBtn} type="submit">Add task</button>
@@ -126,8 +115,7 @@ export function TaskGroupColumn({
               type="button"
               onClick={() => {
                 setIsAddingTask(false);
-                setNewTaskTitle('');
-                setNewTaskDesc('');
+                setNewTaskName('');
               }}
             >
               Cancel
