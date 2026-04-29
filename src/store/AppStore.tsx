@@ -1,19 +1,11 @@
-import React, { createContext, useContext, useEffect, useReducer } from 'react';
-import type { Task, TaskBoard, TaskBoardSummary, TaskGroup, User } from '../types';
-
-// View states for the app
-export type AppView =
-  | { type: 'BOARDS_LIST' }           // landing page — list of boards
-  | { type: 'BOARD'; boardId: number } // inside a specific board
+import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import type { User, TaskBoard, TaskBoardSummary, TaskGroup, Task } from '../types';
 
 interface AppStore {
   user: User | null;
   token: string | null;
-  // Lightweight summaries shown on the boards list page
   boardSummaries: TaskBoardSummary[];
-  // Fully loaded boards (loaded on demand when user opens one)
   loadedBoards: Record<number, TaskBoard>;
-  view: AppView;
   isLoading: boolean;
   isBoardLoading: boolean;
   error: string | null;
@@ -25,7 +17,6 @@ type Action =
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_BOARD_LOADING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string | null }
-  | { type: 'SET_VIEW'; payload: AppView }
   | { type: 'BOARD_LOADED'; payload: TaskBoard }
   | { type: 'ADD_BOARD_SUMMARY'; payload: TaskBoardSummary }
   | { type: 'DELETE_BOARD'; payload: number }
@@ -41,7 +32,6 @@ const initialState: AppStore = {
   token: null,
   boardSummaries: [],
   loadedBoards: {},
-  view: { type: 'BOARDS_LIST' },
   isLoading: false,
   isBoardLoading: false,
   error: null,
@@ -55,7 +45,6 @@ function reducer(state: AppStore, action: Action): AppStore {
         user: action.payload.user,
         token: action.payload.token,
         boardSummaries: action.payload.summaries,
-        view: { type: 'BOARDS_LIST' },
         error: null,
       };
 
@@ -71,14 +60,10 @@ function reducer(state: AppStore, action: Action): AppStore {
     case 'SET_ERROR':
       return { ...state, error: action.payload };
 
-    case 'SET_VIEW':
-      return { ...state, view: action.payload };
-
     case 'BOARD_LOADED':
       return {
         ...state,
         loadedBoards: { ...state.loadedBoards, [action.payload.id]: action.payload },
-        view: { type: 'BOARD', boardId: action.payload.id },
         isBoardLoading: false,
       };
 
@@ -94,7 +79,6 @@ function reducer(state: AppStore, action: Action): AppStore {
         ...state,
         boardSummaries: state.boardSummaries.filter(b => b.id !== action.payload),
         loadedBoards: remainingBoards,
-        view: { type: 'BOARDS_LIST' },
       };
     }
 
@@ -102,7 +86,7 @@ function reducer(state: AppStore, action: Action): AppStore {
       return updateLoadedBoard(state, action.payload.boardId, board => ({
         ...board,
         taskGroups: [...board.taskGroups, { ...action.payload.group, tasks: [] }],
-      })); 
+      }));
 
     case 'UPDATE_GROUP':
       return updateLoadedBoard(state, action.payload.boardId, board => ({
@@ -154,7 +138,6 @@ function reducer(state: AppStore, action: Action): AppStore {
   }
 }
 
-// Helper to cleanly update a loaded board by id
 function updateLoadedBoard(
   state: AppStore,
   boardId: number,

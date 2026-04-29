@@ -38,14 +38,6 @@ export function AuthPage() {
     }
   }
 
-  function switchMode(next: Mode) {
-    setMode(next);
-    setLocalError(null);
-    setUsername('');
-    setEmail('');
-    setPassword('');
-  }
-
   const displayError = localError ?? error;
 
   return (
@@ -133,7 +125,7 @@ export function AuthPage() {
               Don't have an account?{' '}
               <button
                 className={styles.toggleBtn}
-                onClick={() => switchMode('register')} 
+                onClick={() => { setMode('register'); setLocalError(null); }}
               >
                 Sign up
               </button>
@@ -143,7 +135,7 @@ export function AuthPage() {
               Already have an account?{' '}
               <button
                 className={styles.toggleBtn}
-                onClick={() => switchMode('login')} 
+                onClick={() => { setMode('login'); setLocalError(null); }}
               >
                 Sign in
               </button>

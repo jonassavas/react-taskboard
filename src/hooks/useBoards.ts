@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/AppStore';
 import { boardsApi, groupsApi, tasksApi, ApiError } from '../services/api';
 import type {
@@ -6,26 +7,19 @@ import type {
   CreateTaskRequest,
   UpdateTaskRequest,
   UpdateGroupRequest,
-  UpdateBoardRequest,
 } from '../types';
 
 export function useBoards() {
   const { state, dispatch } = useStore();
+  const navigate = useNavigate();
 
-  const activeBoardId =
-    state.view.type === 'BOARD' ? state.view.boardId : null;
-
-  const activeBoard = activeBoardId
-    ? state.loadedBoards[activeBoardId] ?? null
-    : null;
-
-  // Open a board — fetches full data from backend
   async function openBoard(boardId: number) {
     dispatch({ type: 'SET_BOARD_LOADING', payload: true });
     dispatch({ type: 'SET_ERROR', payload: null });
     try {
       const board = await boardsApi.getById(boardId);
       dispatch({ type: 'BOARD_LOADED', payload: board });
+      navigate(`/boards/${boardId}`);
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : 'Failed to load board';
       dispatch({ type: 'SET_ERROR', payload: msg });
@@ -33,8 +27,8 @@ export function useBoards() {
     }
   }
 
-  function goToBoardsList() {
-    dispatch({ type: 'SET_VIEW', payload: { type: 'BOARDS_LIST' } });
+  function goToOverview() {
+    navigate('/overview');
   }
 
   async function createBoard(data: CreateBoardRequest) {
@@ -132,11 +126,10 @@ export function useBoards() {
 
   return {
     boardSummaries: state.boardSummaries,
-    activeBoard,
-    activeBoardId,
+    loadedBoards: state.loadedBoards,
     isBoardLoading: state.isBoardLoading,
     openBoard,
-    goToBoardsList,
+    goToOverview,
     createBoard,
     deleteBoard,
     createGroup,

@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { StoreProvider, useStore } from './store/AppStore';
 import { AuthPage } from './components/auth/AuthPage';
 import { BoardsListPage } from './components/board/BoardsListPage';
@@ -8,37 +9,41 @@ import styles from './App.module.css';
 
 function AppInner() {
   const { state, dispatch } = useStore();
+  const navigate = useNavigate();
 
-  // On refresh: token is hydrated from localStorage but summaries aren't —
-  // re-fetch them so the boards list page works after a page reload
+  // On refresh: re-fetch board summaries if we have a token but no summaries yet
   useEffect(() => {
-    if (state.token && state.boardSummaries.length === 0) {
+    if (state.token && state.boardSummaries.length === 0 && state.user) {
       boardsApi.getAll()
         .then(summaries => {
-          // Dispatch a lightweight summaries-only update
-          if (state.user) {
-            dispatch({
-              type: 'AUTH_SUCCESS',
-              payload: { user: state.user, token: state.token!, summaries },
-            });
-          }
+          dispatch({
+            type: 'AUTH_SUCCESS',
+            payload: { user: state.user!, token: state.token!, summaries },
+          });
         })
         .catch(() => {
-          // Token is invalid/expired — log out cleanly
           dispatch({ type: 'LOGOUT' });
+          navigate('/login');
         });
     }
   }, [state.token]);
 
-  // Not logged in — show auth page
   if (!state.user || !state.token) {
-    return <AuthPage />;
+    return (
+      <Routes>
+        <Route path="/login" element={<AuthPage />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    );
   }
 
   return (
     <div className={styles.app}>
-      {state.view.type === 'BOARDS_LIST' && <BoardsListPage />}
-      {state.view.type === 'BOARD' && <BoardView />}
+      <Routes>
+        <Route path="/overview" element={<BoardsListPage />} />
+        <Route path="/boards/:boardId" element={<BoardView />} />
+        <Route path="*" element={<Navigate to="/overview" replace />} />
+      </Routes>
 
       {state.error && (
         <div className={styles.toast} role="alert">
