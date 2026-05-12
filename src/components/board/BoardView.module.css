@@ -52,11 +52,19 @@
 
 .columns {
   display: flex;
-  gap: 0.875rem;
-  padding: 1.25rem 1.5rem;
-  overflow-x: auto;
-  flex: 1;
+  flex-wrap: wrap;
+
+  align-content: flex-start;
   align-items: flex-start;
+
+  gap: 0.875rem;
+
+  padding: 1.25rem 1.5rem;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  flex: 1;
 }
 
 .columns::-webkit-scrollbar {
