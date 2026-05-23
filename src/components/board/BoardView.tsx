@@ -1,8 +1,22 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useBoards } from '../../hooks/useBoards';
-import { TaskGroupColumn } from './TaskGroupColumn';
 import styles from './BoardView.module.css';
+import { TaskGroupColumn } from './TaskGroupColumn';
+
+import {
+  DndContext,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  horizontalListSortingStrategy,
+} from '@dnd-kit/sortable';
 
 export function BoardView() {
   const { boardId } = useParams<{ boardId: string }>();
@@ -18,6 +32,7 @@ export function BoardView() {
     deleteGroup,
     createTask,
     updateTask,
+    reorderGroups,
     deleteTask,
   } = useBoards();
 
@@ -26,7 +41,10 @@ export function BoardView() {
 
   const activeBoard = loadedBoards[parsedBoardId] ?? null;
 
-  // If we landed here via a refresh or direct URL, fetch the board
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  );
+
   useEffect(() => {
     if (parsedBoardId && !activeBoard && !isBoardLoading) {
       openBoard(parsedBoardId);
@@ -41,7 +59,7 @@ export function BoardView() {
     );
   }
 
-  const sortedGroups = [...activeBoard.taskGroups].sort((a, b) => a.id - b.id);
+  const sortedGroups = [...activeBoard.taskGroups].sort((a, b) => a.position - b.position); 
 
   async function handleCreateGroup(e: React.FormEvent) {
     e.preventDefault();
@@ -52,6 +70,17 @@ export function BoardView() {
     });
     setNewGroupName('');
     setIsAddingGroup(false);
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = sortedGroups.findIndex(g => g.id === active.id);
+    const newIndex = sortedGroups.findIndex(g => g.id === over.id);
+    const reordered = arrayMove(sortedGroups, oldIndex, newIndex);
+
+    reorderGroups(parsedBoardId, reordered.map(g => g.id));
   }
 
   return (
@@ -68,60 +97,71 @@ export function BoardView() {
         </div>
       </div>
 
-      <div className={styles.columns}>
-        {sortedGroups.map(group => (
-          <TaskGroupColumn
-            key={group.id}
-            group={group}
-            boardId={activeBoard.id}
-            onUpdateGroup={async (groupId, data) => {
-              await updateGroup(activeBoard.id, groupId, data);
-            }}
-            onDeleteGroup={async (groupId) => {
-              await deleteGroup(activeBoard.id, groupId);
-            }}
-            onCreateTask={async (groupId, data) => {
-              await createTask(activeBoard.id, groupId, data);
-            }}
-            onUpdateTask={async (taskId, data) => {
-              await updateTask(activeBoard.id, taskId, data);
-            }}
-            onDeleteTask={async (groupId, taskId) => {
-              await deleteTask(activeBoard.id, groupId, taskId);
-            }}
-          />
-        ))}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext
+          items={sortedGroups.map(g => g.id)}
+          strategy={horizontalListSortingStrategy}
+        >
+          <div className={styles.columns}>
+            {sortedGroups.map(group => (
+              <TaskGroupColumn
+                key={group.id}
+                group={group}
+                boardId={activeBoard.id}
+                onUpdateGroup={async (groupId, data) => {
+                  await updateGroup(activeBoard.id, groupId, data);
+                }}
+                onDeleteGroup={async (groupId) => {
+                  await deleteGroup(activeBoard.id, groupId);
+                }}
+                onCreateTask={async (groupId, data) => {
+                  await createTask(activeBoard.id, groupId, data);
+                }}
+                onUpdateTask={async (taskId, data) => {
+                  await updateTask(activeBoard.id, taskId, data);
+                }}
+                onDeleteTask={async (groupId, taskId) => {
+                  await deleteTask(activeBoard.id, groupId, taskId);
+                }}
+              />
+            ))}
 
-        {isAddingGroup ? (
-          <form className={styles.newGroupForm} onSubmit={handleCreateGroup}>
-            <input
-              className={styles.newGroupInput}
-              type="text"
-              placeholder="Column name"
-              value={newGroupName}
-              onChange={e => setNewGroupName(e.target.value)}
-              autoFocus
-            />
-            <div className={styles.newGroupActions}>
-              <button className={styles.confirmBtn} type="submit">Add column</button>
+            {isAddingGroup ? (
+              <form className={styles.newGroupForm} onSubmit={handleCreateGroup}>
+                <input
+                  className={styles.newGroupInput}
+                  type="text"
+                  placeholder="Column name"
+                  value={newGroupName}
+                  onChange={e => setNewGroupName(e.target.value)}
+                  autoFocus
+                />
+                <div className={styles.newGroupActions}>
+                  <button className={styles.confirmBtn} type="submit">Add column</button>
+                  <button
+                    className={styles.cancelBtn}
+                    type="button"
+                    onClick={() => { setIsAddingGroup(false); setNewGroupName(''); }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            ) : (
               <button
-                className={styles.cancelBtn}
-                type="button"
-                onClick={() => { setIsAddingGroup(false); setNewGroupName(''); }}
+                className={styles.addGroupBtn}
+                onClick={() => setIsAddingGroup(true)}
               >
-                Cancel
+                + Add column
               </button>
-            </div>
-          </form>
-        ) : (
-          <button
-            className={styles.addGroupBtn}
-            onClick={() => setIsAddingGroup(true)}
-          >
-            + Add column
-          </button>
-        )}
-      </div>
+            )}
+          </div>
+        </SortableContext>
+      </DndContext>
     </div>
   );
 }

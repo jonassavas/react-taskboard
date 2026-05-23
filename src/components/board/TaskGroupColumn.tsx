@@ -1,3 +1,5 @@
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { useState } from 'react';
 import type { TaskGroup } from '../../types';
 import { TaskCard } from '../task/TaskCard';
@@ -26,6 +28,22 @@ export function TaskGroupColumn({
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [newTaskName, setNewTaskName] = useState('');
 
+  // dnd-kit sortable hook — gives us ref, style, and listener props
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: group.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
   async function handleTitleSave() {
     if (!groupName.trim()) {
       setGroupName(group.taskGroupName);
@@ -48,8 +66,23 @@ export function TaskGroupColumn({
   }
 
   return (
-    <div className={styles.column}>
+    // ref and style make this element draggable
+    // attributes adds accessibility props (aria-*)
+    <div ref={setNodeRef} style={style} className={styles.column} {...attributes}>
       <div className={styles.header}>
+
+        {/* Drag handle — listeners only here so clicks elsewhere still work */}
+        <div className={styles.dragHandle} {...listeners} title="Drag to reorder">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="9"  cy="5"  r="1.5"/>
+            <circle cx="9"  cy="12" r="1.5"/>
+            <circle cx="9"  cy="19" r="1.5"/>
+            <circle cx="15" cy="5"  r="1.5"/>
+            <circle cx="15" cy="12" r="1.5"/>
+            <circle cx="15" cy="19" r="1.5"/>
+          </svg>
+        </div>
+
         {isEditingTitle ? (
           <input
             className={styles.titleInput}
@@ -74,6 +107,7 @@ export function TaskGroupColumn({
             <span className={styles.count}>{group.tasks.length}</span>
           </button>
         )}
+
         <button
           className={styles.deleteGroupBtn}
           onClick={async () => {

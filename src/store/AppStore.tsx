@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import type { User, TaskBoard, TaskBoardSummary, TaskGroup, Task } from '../types';
+import React, { createContext, useContext, useEffect, useReducer } from 'react';
+import type { Task, TaskBoard, TaskBoardSummary, TaskGroup, User } from '../types';
 
 interface AppStore {
   user: User | null;
@@ -25,7 +25,8 @@ type Action =
   | { type: 'DELETE_GROUP'; payload: { boardId: number; groupId: number } }
   | { type: 'ADD_TASK'; payload: { boardId: number; groupId: number; task: Task } }
   | { type: 'UPDATE_TASK'; payload: { boardId: number; task: Task } }
-  | { type: 'DELETE_TASK'; payload: { boardId: number; groupId: number; taskId: number } };
+  | { type: 'DELETE_TASK'; payload: { boardId: number; groupId: number; taskId: number } }
+  | { type: 'REORDER_GROUPS'; payload: { boardId: number; groupIds: number[] } };
 
 const initialState: AppStore = {
   user: null,
@@ -101,6 +102,19 @@ function reducer(state: AppStore, action: Action): AppStore {
         ...board,
         taskGroups: board.taskGroups.filter(g => g.id !== action.payload.groupId),
       }));
+
+    case 'REORDER_GROUPS':
+      return updateLoadedBoard(state, action.payload.boardId, board => {
+        const order = action.payload.groupIds;
+        const updated = board.taskGroups.map(g => ({
+          ...g,
+          position: order.indexOf(g.id), // assign new position based on index in the new order
+        }));
+        return {
+          ...board,
+          taskGroups: updated.sort((a, b) => a.position - b.position),
+        };
+    });
 
     case 'ADD_TASK':
       return updateLoadedBoard(state, action.payload.boardId, board => ({

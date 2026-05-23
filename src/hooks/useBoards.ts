@@ -1,12 +1,12 @@
 import { useNavigate } from 'react-router-dom';
+import { ApiError, boardsApi, groupsApi, tasksApi } from '../services/api';
 import { useStore } from '../store/AppStore';
-import { boardsApi, groupsApi, tasksApi, ApiError } from '../services/api';
 import type {
   CreateBoardRequest,
   CreateGroupRequest,
   CreateTaskRequest,
-  UpdateTaskRequest,
   UpdateGroupRequest,
+  UpdateTaskRequest,
 } from '../types';
 
 export function useBoards() {
@@ -113,6 +113,20 @@ export function useBoards() {
     }
   }
 
+  async function reorderGroups(boardId: number, groupIds: number[]) {
+    // Update UI immediately (optimistic)
+    dispatch({ type: 'REORDER_GROUPS', payload: { boardId, groupIds } });
+    try {
+      await groupsApi.reorder(boardId, groupIds);
+    } catch (err) {
+      // On failure, reload the board to get correct order back
+      const board = await boardsApi.getById(boardId);
+      dispatch({ type: 'BOARD_LOADED', payload: board });
+      const msg = err instanceof ApiError ? err.message : 'Failed to reorder columns';
+      dispatch({ type: 'SET_ERROR', payload: msg });
+    }
+  }
+
   async function deleteTask(boardId: number, groupId: number, taskId: number) {
     try {
       await tasksApi.delete(taskId);
@@ -137,6 +151,7 @@ export function useBoards() {
     deleteGroup,
     createTask,
     updateTask,
+    reorderGroups,
     deleteTask,
   };
 }

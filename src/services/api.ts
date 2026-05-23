@@ -1,17 +1,17 @@
 import type {
   AuthResponse,
-  LoginRequest,
-  RegisterRequest,
-  TaskBoard,
-  TaskBoardSummary,
-  TaskGroup,
-  Task,
   CreateBoardRequest,
   CreateGroupRequest,
   CreateTaskRequest,
-  UpdateTaskRequest,
-  UpdateGroupRequest,
+  LoginRequest,
+  RegisterRequest,
+  Task,
+  TaskBoard,
+  TaskBoardSummary,
+  TaskGroup,
   UpdateBoardRequest,
+  UpdateGroupRequest,
+  UpdateTaskRequest,
 } from '../types';
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080';
@@ -121,6 +121,12 @@ export const groupsApi = {
 
   delete: (boardId: number, groupId: number): Promise<void> =>
     request<void>(`/taskboards/${boardId}/groups/${groupId}`, { method: 'DELETE' }),
+
+  reorder: (boardId: number, groupIds: number[]): Promise<void> =>
+    request<void>(`/taskboards/${boardId}/groups/reorder`, {
+      method: 'PATCH',
+      body: JSON.stringify({ groupIds }),
+    }),
 };
 
 export const tasksApi = {

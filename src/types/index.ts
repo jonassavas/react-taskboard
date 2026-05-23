@@ -14,6 +14,7 @@ export interface TaskGroup {
   id: number;
   taskGroupName: string;
   taskBoardId: number;
+  position: number;
   tasks: Task[];
 }
 
