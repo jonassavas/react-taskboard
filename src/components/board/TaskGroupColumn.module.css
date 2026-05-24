@@ -8,6 +8,12 @@
   padding: 0.75rem;
   flex-shrink: 0;
   max-height: 410px;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+/* When a color is applied, soften the border */
+.column.colored {
+  border-color: transparent;
 }
 
 .header {
@@ -19,17 +25,16 @@
   margin-bottom: 0.25rem;
 }
 
-/* Drag handle — only this area triggers dragging */
 .dragHandle {
-  color: rgba(255, 255, 255, 0.15);
+  color: var(--col-text, rgba(255, 255, 255, 0.15));
+  opacity: 0.4;
   cursor: grab;
   padding: 2px 4px;
   border-radius: 4px;
   display: flex;
   align-items: center;
   flex-shrink: 0;
-  transition: color 0.15s;
-  opacity: 0;
+  transition: color 0.15s, opacity 0.15s;
 }
 
 .dragHandle:active {
@@ -38,11 +43,10 @@
 
 .column:hover .dragHandle {
   opacity: 1;
-  color: rgba(255, 255, 255, 0.35);
 }
 
 .dragHandle:hover {
-  color: rgba(255, 255, 255, 0.6) !important;
+  opacity: 1;
 }
 
 .titleBtn {
@@ -62,13 +66,14 @@
 }
 
 .titleBtn:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.1);
 }
 
 .title {
   font-size: 1.02rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.8);
+  /* Falls back to white when no color set */
+  color: var(--col-text, rgba(255, 255, 255, 0.8));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -76,8 +81,9 @@
 
 .count {
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.3);
-  background: rgba(255, 255, 255, 0.07);
+  color: var(--col-text, rgba(255, 255, 255, 0.3));
+  opacity: 0.6;
+  background: rgba(0, 0, 0, 0.12);
   border-radius: 10px;
   padding: 1px 7px;
   flex-shrink: 0;
@@ -85,13 +91,13 @@
 
 .titleInput {
   flex: 1;
-  background: rgba(99, 102, 241, 0.1);
-  border: 1px solid rgba(99, 102, 241, 0.4);
+  background: rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(0, 0, 0, 0.2);
   border-radius: 5px;
   padding: 0.25rem 0.5rem;
   font-size: 0.875rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--col-text, rgba(255, 255, 255, 0.9));
   font-family: inherit;
   outline: none;
 }
@@ -99,14 +105,14 @@
 .deleteGroupBtn {
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.2);
+  color: var(--col-text, rgba(255, 255, 255, 0.2));
+  opacity: 0.4;
   font-size: 1.1rem;
   cursor: pointer;
   padding: 2px 5px;
   border-radius: 4px;
   line-height: 1;
-  opacity: 0;
-  transition: color 0.15s, opacity 0.15s;
+  transition: opacity 0.15s, color 0.15s;
   flex-shrink: 0;
 }
 
@@ -115,7 +121,8 @@
 }
 
 .deleteGroupBtn:hover {
-  color: #f87171;
+  color: #f87171 !important;
+  opacity: 1;
 }
 
 .tasks {
@@ -138,30 +145,43 @@
 }
 
 .tasks::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.1);
+  background: rgba(0, 0, 0, 0.2);
   border-radius: 999px;
 }
 
 .addTaskBtn {
   background: none;
-  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border: 1px dashed rgba(0, 0, 0, 0.15);
   border-radius: 7px;
-  color: rgba(255, 255, 255, 0.3);
+  color: var(--col-text, rgba(255, 255, 255, 0.3));
+  opacity: 0.7;
   font-size: 0.8125rem;
   padding: 0.5rem;
   cursor: pointer;
   width: 100%;
   text-align: center;
-  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  transition: opacity 0.15s, background 0.15s;
   font-family: inherit;
   flex-shrink: 0;
   margin-top: 0.75rem;
 }
 
-.addTaskBtn:hover {
+/* Uncolored version keeps the original indigo hover */
+.column:not(.colored) .addTaskBtn {
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.3);
+  opacity: 1;
+}
+
+.column:not(.colored) .addTaskBtn:hover {
   border-color: rgba(99, 102, 241, 0.4);
   color: rgba(99, 102, 241, 0.7);
   background: rgba(99, 102, 241, 0.05);
+}
+
+.addTaskBtn:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.1);
 }
 
 .addTaskForm {
@@ -175,32 +195,20 @@
 .addTaskInput {
   width: 100%;
   box-sizing: border-box;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(99, 102, 241, 0.4);
+  background: rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(0, 0, 0, 0.2);
   border-radius: 6px;
   padding: 0.4rem 0.6rem;
   font-size: 0.875rem;
+  color: var(--col-text, rgba(255, 255, 255, 0.85));
+  outline: none;
+  font-family: inherit;
+}
+
+.column:not(.colored) .addTaskInput {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(99, 102, 241, 0.4);
   color: rgba(255, 255, 255, 0.85);
-  outline: none;
-  font-family: inherit;
-}
-
-.addTaskDesc {
-  width: 100%;
-  box-sizing: border-box;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
-  padding: 0.4rem 0.6rem;
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.6);
-  font-family: inherit;
-  resize: none;
-  outline: none;
-}
-
-.addTaskDesc::placeholder {
-  color: rgba(255, 255, 255, 0.2);
 }
 
 .addTaskActions {
@@ -210,35 +218,46 @@
 
 .confirmBtn {
   flex: 1;
-  background: #6366f1;
-  color: white;
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--col-text, white);
   border: none;
   border-radius: 5px;
   padding: 0.375rem;
   font-size: 0.8125rem;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   font-family: inherit;
   transition: background 0.15s;
 }
 
-.confirmBtn:hover {
+.column:not(.colored) .confirmBtn {
+  background: #6366f1;
+  color: white;
+}
+
+.column:not(.colored) .confirmBtn:hover {
   background: #4f46e5;
+}
+
+.confirmBtn:hover {
+  background: rgba(0, 0, 0, 0.35);
 }
 
 .cancelBtn {
   flex: 1;
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.4);
+  background: rgba(0, 0, 0, 0.1);
+  color: var(--col-text, rgba(255, 255, 255, 0.4));
+  opacity: 0.7;
   border: none;
   border-radius: 5px;
   padding: 0.375rem;
   font-size: 0.8125rem;
   cursor: pointer;
   font-family: inherit;
-  transition: background 0.15s;
+  transition: background 0.15s, opacity 0.15s;
 }
 
 .cancelBtn:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.2);
+  opacity: 1;
 }

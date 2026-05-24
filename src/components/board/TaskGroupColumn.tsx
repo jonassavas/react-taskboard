@@ -2,13 +2,14 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useState } from 'react';
 import type { TaskGroup } from '../../types';
+import { ColorPicker, getContrastColor } from '../common/ColorPicker';
 import { TaskCard } from '../task/TaskCard';
 import styles from './TaskGroupColumn.module.css';
 
 interface Props {
   group: TaskGroup;
   boardId: number;
-  onUpdateGroup: (groupId: number, data: { taskGroupName?: string }) => Promise<void>;
+  onUpdateGroup: (groupId: number, data: { taskGroupName?: string; color?: string | null }) => Promise<void>;
   onDeleteGroup: (groupId: number) => Promise<void>;
   onCreateTask: (groupId: number, data: { taskName: string; taskGroupId: number }) => Promise<void>;
   onUpdateTask: (taskId: number, data: { taskName?: string }) => Promise<void>;
@@ -28,7 +29,6 @@ export function TaskGroupColumn({
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [newTaskName, setNewTaskName] = useState('');
 
-  // dnd-kit sortable hook — gives us ref, style, and listener props
   const {
     attributes,
     listeners,
@@ -38,10 +38,18 @@ export function TaskGroupColumn({
     isDragging,
   } = useSortable({ id: group.id });
 
-  const style = {
+  // Compute colors based on whether a color is set
+  const hasColor = !!group.color;
+  const textColor = hasColor ? getContrastColor(group.color!) : undefined;
+  // Slightly transparent version of the color for the background
+  const bgColor = hasColor ? group.color! : undefined;
+
+  const columnStyle = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
+    ...(bgColor && { background: bgColor }),
+    ...(textColor && { '--col-text': textColor } as React.CSSProperties),
   };
 
   async function handleTitleSave() {
@@ -52,6 +60,10 @@ export function TaskGroupColumn({
     }
     await onUpdateGroup(group.id, { taskGroupName: groupName.trim() });
     setIsEditingTitle(false);
+  }
+
+  async function handleColorSelect(color: string | null) {
+    await onUpdateGroup(group.id, { color });
   }
 
   async function handleAddTask(e: React.FormEvent) {
@@ -66,12 +78,13 @@ export function TaskGroupColumn({
   }
 
   return (
-    // ref and style make this element draggable
-    // attributes adds accessibility props (aria-*)
-    <div ref={setNodeRef} style={style} className={styles.column} {...attributes}>
+    <div
+      ref={setNodeRef}
+      style={columnStyle}
+      className={`${styles.column} ${hasColor ? styles.colored : ''}`}
+      {...attributes}
+    >
       <div className={styles.header}>
-
-        {/* Drag handle — listeners only here so clicks elsewhere still work */}
         <div className={styles.dragHandle} {...listeners} title="Drag to reorder">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
             <circle cx="9"  cy="5"  r="1.5"/>
@@ -107,6 +120,11 @@ export function TaskGroupColumn({
             <span className={styles.count}>{group.tasks.length}</span>
           </button>
         )}
+
+        <ColorPicker
+          currentColor={group.color}
+          onSelect={handleColorSelect}
+        />
 
         <button
           className={styles.deleteGroupBtn}
@@ -147,10 +165,7 @@ export function TaskGroupColumn({
             <button
               className={styles.cancelBtn}
               type="button"
-              onClick={() => {
-                setIsAddingTask(false);
-                setNewTaskName('');
-              }}
+              onClick={() => { setIsAddingTask(false); setNewTaskName(''); }}
             >
               Cancel
             </button>

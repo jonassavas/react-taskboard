@@ -127,6 +127,18 @@
   outline: none;
 }
 
+.newGroupTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.newGroupColorPreview {
+  height: 3px;
+  border-radius: 2px;
+  margin: 0;
+}
+
 .newGroupActions {
   display: flex;
   gap: 0.375rem;

@@ -15,6 +15,7 @@ export interface TaskGroup {
   taskGroupName: string;
   taskBoardId: number;
   position: number;
+  color: string | null;
   tasks: Task[];
 }
 
@@ -54,6 +55,7 @@ export interface CreateBoardRequest {
 export interface CreateGroupRequest {
   taskGroupName: string;
   taskBoardId: number;
+  color?: string;
 }
 
 export interface CreateTaskRequest {
@@ -67,6 +69,7 @@ export interface UpdateBoardRequest {
 
 export interface UpdateGroupRequest {
   taskGroupName?: string;
+  color?: string;
 }
 
 export interface UpdateTaskRequest {

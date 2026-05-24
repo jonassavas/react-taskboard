@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useBoards } from '../../hooks/useBoards';
+import { ColorPicker } from '../common/ColorPicker';
 import styles from './BoardView.module.css';
 import { TaskGroupColumn } from './TaskGroupColumn';
 
@@ -38,6 +39,7 @@ export function BoardView() {
 
   const [isAddingGroup, setIsAddingGroup] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
+  const [newGroupColor, setNewGroupColor] = useState<string | null>(null);
 
   const activeBoard = loadedBoards[parsedBoardId] ?? null;
 
@@ -59,7 +61,7 @@ export function BoardView() {
     );
   }
 
-  const sortedGroups = [...activeBoard.taskGroups].sort((a, b) => a.position - b.position); 
+  const sortedGroups = [...activeBoard.taskGroups].sort((a, b) => a.position - b.position);
 
   async function handleCreateGroup(e: React.FormEvent) {
     e.preventDefault();
@@ -67,8 +69,10 @@ export function BoardView() {
     await createGroup(parsedBoardId, {
       taskGroupName: newGroupName.trim(),
       taskBoardId: parsedBoardId,
+      color: newGroupColor ?? undefined,
     });
     setNewGroupName('');
+    setNewGroupColor(null);
     setIsAddingGroup(false);
   }
 
@@ -132,20 +136,39 @@ export function BoardView() {
 
             {isAddingGroup ? (
               <form className={styles.newGroupForm} onSubmit={handleCreateGroup}>
-                <input
-                  className={styles.newGroupInput}
-                  type="text"
-                  placeholder="Column name"
-                  value={newGroupName}
-                  onChange={e => setNewGroupName(e.target.value)}
-                  autoFocus
-                />
+                <div className={styles.newGroupTitleRow}>
+                  <input
+                    className={styles.newGroupInput}
+                    type="text"
+                    placeholder="Column name"
+                    value={newGroupName}
+                    onChange={e => setNewGroupName(e.target.value)}
+                    autoFocus
+                  />
+                  <ColorPicker
+                    currentColor={newGroupColor}
+                    onSelect={setNewGroupColor}
+                  />
+                </div>
+
+                {/* Color preview strip */}
+                {newGroupColor && (
+                  <div
+                    className={styles.newGroupColorPreview}
+                    style={{ background: newGroupColor }}
+                  />
+                )}
+
                 <div className={styles.newGroupActions}>
                   <button className={styles.confirmBtn} type="submit">Add column</button>
                   <button
                     className={styles.cancelBtn}
                     type="button"
-                    onClick={() => { setIsAddingGroup(false); setNewGroupName(''); }}
+                    onClick={() => {
+                      setIsAddingGroup(false);
+                      setNewGroupName('');
+                      setNewGroupColor(null);
+                    }}
                   >
                     Cancel
                   </button>
