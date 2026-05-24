@@ -8,15 +8,15 @@ import { TaskGroupColumn } from './TaskGroupColumn';
 import {
   DndContext,
   PointerSensor,
-  closestCenter,
+  rectIntersection,
   useSensor,
   useSensors,
-  type DragEndEvent,
+  type DragEndEvent
 } from '@dnd-kit/core';
 import {
   SortableContext,
   arrayMove,
-  horizontalListSortingStrategy,
+  rectSortingStrategy, // ← was horizontalListSortingStrategy
 } from '@dnd-kit/sortable';
 
 export function BoardView() {
@@ -103,12 +103,13 @@ export function BoardView() {
 
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCenter}
+        collisionDetection={rectIntersection}
+        // no modifiers — restrictToHorizontalAxis breaks wrapping rows
         onDragEnd={handleDragEnd}
       >
         <SortableContext
           items={sortedGroups.map(g => g.id)}
-          strategy={horizontalListSortingStrategy}
+          strategy={rectSortingStrategy}    // ← handles wrapping correctly
         >
           <div className={styles.columns}>
             {sortedGroups.map(group => (
@@ -151,7 +152,6 @@ export function BoardView() {
                   />
                 </div>
 
-                {/* Color preview strip */}
                 {newGroupColor && (
                   <div
                     className={styles.newGroupColorPreview}
