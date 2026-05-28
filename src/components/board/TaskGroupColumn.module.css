@@ -1,5 +1,7 @@
+/* ── Column ──────────────────────────────────────────────────────────────── */
 .column {
   width: 320px;
+  min-width: 320px;
   display: flex;
   flex-direction: column;
   background: #15151b;
@@ -7,50 +9,47 @@
   border-radius: 14px;
   padding: 0.75rem;
   flex-shrink: 0;
-  max-height: 410px;
+  max-height: calc(100vh - 8rem);
   transition: background 0.2s, border-color 0.2s;
+  box-sizing: border-box;
 }
 
-/* When a color is applied, soften the border */
 .column.colored {
   border-color: transparent;
 }
 
+.column.dropTarget {
+  outline: 2px dashed rgba(99, 102, 241, 0.5);
+  outline-offset: -2px;
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
 .header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  flex-shrink: 0;
   gap: 0.375rem;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.5rem;
+  flex-shrink: 0;
 }
 
 .dragHandle {
   color: var(--col-text, rgba(255, 255, 255, 0.15));
-  opacity: 0.4;
+  opacity: 0;
   cursor: grab;
   padding: 2px 4px;
   border-radius: 4px;
   display: flex;
   align-items: center;
   flex-shrink: 0;
-  transition: color 0.15s, opacity 0.15s;
+  transition: opacity 0.15s;
 }
 
-.dragHandle:active {
-  cursor: grabbing;
-}
-
-.column:hover .dragHandle {
-  opacity: 1;
-}
-
-.dragHandle:hover {
-  opacity: 1;
-}
+.dragHandle:active { cursor: grabbing; }
+.column:hover .dragHandle { opacity: 1; }
 
 .titleBtn {
   flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -62,28 +61,23 @@
   text-align: left;
   font-family: inherit;
   transition: background 0.15s;
-  min-width: 0;
 }
 
-.titleBtn:hover {
-  background: rgba(0, 0, 0, 0.1);
-}
+.titleBtn:hover { background: rgba(0, 0, 0, 0.1); }
 
 .title {
-  font-size: 1.02rem;
+  font-size: 0.9375rem;
   font-weight: 600;
-  /* Falls back to white when no color set */
-  color: var(--col-text, rgba(255, 255, 255, 0.8));
+  color: var(--col-text, rgba(255, 255, 255, 0.85));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .count {
-  font-size: 0.75rem;
-  color: var(--col-text, rgba(255, 255, 255, 0.3));
-  opacity: 0.6;
-  background: rgba(0, 0, 0, 0.12);
+  font-size: 0.72rem;
+  color: var(--col-text, rgba(255, 255, 255, 0.4));
+  background: rgba(0, 0, 0, 0.15);
   border-radius: 10px;
   padding: 1px 7px;
   flex-shrink: 0;
@@ -92,10 +86,10 @@
 .titleInput {
   flex: 1;
   background: rgba(0, 0, 0, 0.15);
-  border: 1px solid rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(99, 102, 241, 0.4);
   border-radius: 5px;
   padding: 0.25rem 0.5rem;
-  font-size: 0.875rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: var(--col-text, rgba(255, 255, 255, 0.9));
   font-family: inherit;
@@ -105,110 +99,218 @@
 .deleteGroupBtn {
   background: none;
   border: none;
-  color: var(--col-text, rgba(255, 255, 255, 0.2));
-  opacity: 0.4;
+  color: var(--col-text, rgba(255, 255, 255, 0.3));
   font-size: 1.1rem;
   cursor: pointer;
   padding: 2px 5px;
   border-radius: 4px;
   line-height: 1;
-  transition: opacity 0.15s, color 0.15s;
+  opacity: 0;
   flex-shrink: 0;
+  transition: opacity 0.15s, color 0.15s;
 }
 
-.column:hover .deleteGroupBtn {
-  opacity: 1;
-}
+.column:hover .deleteGroupBtn { opacity: 1; }
+.deleteGroupBtn:hover { color: #f87171 !important; }
 
-.deleteGroupBtn:hover {
-  color: #f87171 !important;
-  opacity: 1;
-}
-
+/* ── Task list ───────────────────────────────────────────────────────────── */
 .tasks {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.4rem;
   overflow-y: auto;
   flex: 1;
   min-height: 0;
-  max-height: 520px;
-  padding-right: 4px;
+  padding-right: 2px;
 }
 
-.tasks::-webkit-scrollbar {
-  width: 6px;
-}
+.tasks::-webkit-scrollbar { width: 4px; }
+.tasks::-webkit-scrollbar-track { background: transparent; }
+.tasks::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
 
-.tasks::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.tasks::-webkit-scrollbar-thumb {
+/* ── Task cards ──────────────────────────────────────────────────────────── */
+.taskCard {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
   background: rgba(0, 0, 0, 0.2);
-  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 0.5rem 0.6rem;
+  transition: background 0.15s, border-color 0.15s;
 }
 
-.addTaskBtn {
+.column:not(.colored) .taskCard {
+  background: #1e1e2a;
+}
+
+.taskCard:hover { background: rgba(0, 0, 0, 0.3); }
+
+.column:not(.colored) .taskCard:hover {
+  background: #22222f;
+  border-color: rgba(99, 102, 241, 0.2);
+}
+
+.taskCard:hover .taskDragHandle { opacity: 1; }
+.taskCard:hover .taskActions    { opacity: 1; }
+
+.taskDragHandle {
+  color: var(--col-text, rgba(255, 255, 255, 0.25));
+  opacity: 0;
+  cursor: grab;
+  padding: 2px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+
+.taskDragHandle:active { cursor: grabbing; }
+
+.taskName {
+  flex: 1;
+  font-size: 0.875rem;
+  color: var(--col-text, rgba(255, 255, 255, 0.82));
+  margin: 0;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.taskActions {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+
+.taskActionBtn {
   background: none;
-  border: 1px dashed rgba(0, 0, 0, 0.15);
+  border: none;
+  color: var(--col-text, rgba(255, 255, 255, 0.35));
+  cursor: pointer;
+  padding: 3px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s, background 0.15s;
+}
+
+.taskActionBtn:hover { background: rgba(0, 0, 0, 0.2); }
+.taskDeleteBtn:hover { color: #f87171 !important; }
+
+/* Task inline edit */
+.taskEditInput {
+  width: 100%;
+  box-sizing: border-box;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  border-radius: 5px;
+  padding: 0.25rem 0.4rem;
+  font-size: 0.875rem;
+  color: var(--col-text, rgba(255, 255, 255, 0.9));
+  font-family: inherit;
+  outline: none;
+  margin-bottom: 0.3rem;
+}
+
+.taskEditActions {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.saveBtn {
+  flex: 1;
+  background: #6366f1;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 0.3rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+
+.saveBtn:hover { background: #4f46e5; }
+
+.cancelSmBtn {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.4);
+  border: none;
+  border-radius: 5px;
+  padding: 0.3rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+
+.cancelSmBtn:hover { background: rgba(255, 255, 255, 0.1); }
+
+/* ── Add task ────────────────────────────────────────────────────────────── */
+.addTaskBtn {
+  margin-top: 0.5rem;
+  flex-shrink: 0;
+  background: none;
+  border: 1px dashed rgba(255, 255, 255, 0.1);
   border-radius: 7px;
-  color: var(--col-text, rgba(255, 255, 255, 0.3));
-  opacity: 0.7;
+  color: rgba(255, 255, 255, 0.3);
   font-size: 0.8125rem;
-  padding: 0.5rem;
+  padding: 0.45rem;
   cursor: pointer;
   width: 100%;
   text-align: center;
-  transition: opacity 0.15s, background 0.15s;
   font-family: inherit;
-  flex-shrink: 0;
-  margin-top: 0.75rem;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
 
-/* Uncolored version keeps the original indigo hover */
-.column:not(.colored) .addTaskBtn {
-  border-color: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.3);
-  opacity: 1;
-}
-
-.column:not(.colored) .addTaskBtn:hover {
+.addTaskBtn:hover {
   border-color: rgba(99, 102, 241, 0.4);
   color: rgba(99, 102, 241, 0.7);
   background: rgba(99, 102, 241, 0.05);
 }
 
-.addTaskBtn:hover {
-  opacity: 1;
-  background: rgba(0, 0, 0, 0.1);
+.column.colored .addTaskBtn {
+  border-color: rgba(0, 0, 0, 0.15);
+  color: var(--col-text, rgba(255, 255, 255, 0.5));
+  opacity: 0.7;
 }
 
+.column.colored .addTaskBtn:hover {
+  background: rgba(0, 0, 0, 0.1);
+  opacity: 1;
+}
+
+/* ── Add task form ───────────────────────────────────────────────────────── */
 .addTaskForm {
   display: flex;
   flex-direction: column;
   gap: 0.375rem;
-  margin-top: 0.75rem;
+  margin-top: 0.5rem;
   flex-shrink: 0;
 }
 
 .addTaskInput {
   width: 100%;
   box-sizing: border-box;
-  background: rgba(0, 0, 0, 0.15);
-  border: 1px solid rgba(0, 0, 0, 0.2);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(99, 102, 241, 0.4);
   border-radius: 6px;
   padding: 0.4rem 0.6rem;
   font-size: 0.875rem;
-  color: var(--col-text, rgba(255, 255, 255, 0.85));
+  color: rgba(255, 255, 255, 0.85);
   outline: none;
   font-family: inherit;
 }
 
-.column:not(.colored) .addTaskInput {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(99, 102, 241, 0.4);
-  color: rgba(255, 255, 255, 0.85);
+.column.colored .addTaskInput {
+  background: rgba(0, 0, 0, 0.15);
+  border-color: rgba(0, 0, 0, 0.2);
+  color: var(--col-text, rgba(255, 255, 255, 0.85));
 }
 
 .addTaskActions {
@@ -218,46 +320,38 @@
 
 .confirmBtn {
   flex: 1;
-  background: rgba(0, 0, 0, 0.25);
-  color: var(--col-text, white);
+  background: #6366f1;
+  color: white;
   border: none;
   border-radius: 5px;
   padding: 0.375rem;
   font-size: 0.8125rem;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   font-family: inherit;
   transition: background 0.15s;
 }
 
-.column:not(.colored) .confirmBtn {
-  background: #6366f1;
-  color: white;
+.confirmBtn:hover { background: #4f46e5; }
+
+.column.colored .confirmBtn {
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--col-text, white);
 }
 
-.column:not(.colored) .confirmBtn:hover {
-  background: #4f46e5;
-}
-
-.confirmBtn:hover {
-  background: rgba(0, 0, 0, 0.35);
-}
+.column.colored .confirmBtn:hover { background: rgba(0, 0, 0, 0.35); }
 
 .cancelBtn {
   flex: 1;
-  background: rgba(0, 0, 0, 0.1);
-  color: var(--col-text, rgba(255, 255, 255, 0.4));
-  opacity: 0.7;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.4);
   border: none;
   border-radius: 5px;
   padding: 0.375rem;
   font-size: 0.8125rem;
   cursor: pointer;
   font-family: inherit;
-  transition: background 0.15s, opacity 0.15s;
+  transition: background 0.15s;
 }
 
-.cancelBtn:hover {
-  background: rgba(0, 0, 0, 0.2);
-  opacity: 1;
-}
+.cancelBtn:hover { background: rgba(255, 255, 255, 0.1); }
