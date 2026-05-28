@@ -101,6 +101,29 @@ export function useBoards() {
     }
   }
 
+  async function reorderTasks(
+    boardId: number,
+    sourceGroupId: number,
+    destinationGroupId: number,
+    sourceTaskIds: number[],
+    destinationTaskIds: number[]
+  ) {
+    // Optimistic update first
+    dispatch({
+      type: 'REORDER_TASKS',
+      payload: { boardId, sourceGroupId, destinationGroupId, sourceTaskIds, destinationTaskIds },
+    });
+    try {
+      await tasksApi.reorder({ sourceGroupId, destinationGroupId, sourceTaskIds, destinationTaskIds });
+    } catch (err) {
+      // Roll back by reloading the board
+      const board = await boardsApi.getById(boardId);
+      dispatch({ type: 'BOARD_LOADED', payload: board });
+      const msg = err instanceof ApiError ? err.message : 'Failed to reorder tasks';
+      dispatch({ type: 'SET_ERROR', payload: msg });
+    }
+  }
+
   async function updateTask(boardId: number, taskId: number, data: UpdateTaskRequest) {
     try {
       const task = await tasksApi.update(taskId, data);
@@ -153,5 +176,6 @@ export function useBoards() {
     updateTask,
     reorderGroups,
     deleteTask,
+    reorderTasks,
   };
 }

@@ -8,6 +8,7 @@ export interface Task {
   id: number;
   taskName: string;
   taskGroupId: number;
+  position: number;
 }
 
 export interface TaskGroup {

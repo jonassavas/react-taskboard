@@ -26,7 +26,17 @@ type Action =
   | { type: 'ADD_TASK'; payload: { boardId: number; groupId: number; task: Task } }
   | { type: 'UPDATE_TASK'; payload: { boardId: number; task: Task } }
   | { type: 'DELETE_TASK'; payload: { boardId: number; groupId: number; taskId: number } }
-  | { type: 'REORDER_GROUPS'; payload: { boardId: number; groupIds: number[] } };
+  | { type: 'REORDER_GROUPS'; payload: { boardId: number; groupIds: number[] } }
+  | {
+    type: 'REORDER_TASKS';
+    payload: {
+      boardId: number;
+      sourceGroupId: number;
+      destinationGroupId: number;
+      sourceTaskIds: number[];
+      destinationTaskIds: number[];
+    };
+  };
 
 const initialState: AppStore = {
   user: null,
@@ -135,6 +145,29 @@ function reducer(state: AppStore, action: Action): AppStore {
             t.id === action.payload.task.id ? { ...t, ...action.payload.task } : t
           ),
         })),
+      }));
+
+    case 'REORDER_TASKS':
+      return updateLoadedBoard(state, action.payload.boardId, board => ({
+        ...board,
+        taskGroups: board.taskGroups.map(g => {
+          if (g.id === action.payload.sourceGroupId) {
+            // Re-order source group's tasks to match sourceTaskIds order
+            const reordered = action.payload.sourceTaskIds
+              .map(id => g.tasks.find(t => t.id === id))
+              .filter(Boolean) as Task[];
+            return { ...g, tasks: reordered };
+          }
+          if (g.id === action.payload.destinationGroupId) {
+            // Collect all tasks that belong to destination (including moved ones)
+            const allTasks = [...board.taskGroups.flatMap(grp => grp.tasks)];
+            const reordered = action.payload.destinationTaskIds
+              .map(id => allTasks.find(t => t.id === id))
+              .filter(Boolean) as Task[];
+            return { ...g, tasks: reordered };
+          }
+          return g;
+        }),
       }));
 
     case 'DELETE_TASK':

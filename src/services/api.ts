@@ -142,8 +142,20 @@ export const tasksApi = {
       body: JSON.stringify(data),
     }),
 
+    reorder: (data: {
+    sourceGroupId: number;
+    destinationGroupId: number;
+    sourceTaskIds: number[];
+    destinationTaskIds: number[];
+  }): Promise<void> =>
+    request<void>('/tasks/reorder', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
   delete: (taskId: number): Promise<void> =>
     request<void>(`/tasks/${taskId}`, { method: 'DELETE' }),
 };
 
 export { ApiError };
+
