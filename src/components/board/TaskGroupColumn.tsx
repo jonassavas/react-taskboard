@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { useSortable } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import type { TaskGroup, Task } from '../../types';
+import { useState } from 'react';
+import type { Task, TaskGroup } from '../../types';
 import { ColorPicker, getContrastColor } from '../common/ColorPicker';
 import styles from './TaskGroupColumn.module.css';
 
@@ -22,8 +22,14 @@ function SortableTaskCard({
   const [isEditing, setIsEditing] = useState(false);
   const [taskName, setTaskName] = useState(task.taskName);
 
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: task.id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+  id: task.id,
+  data: {
+    type: 'task',
+    taskId: task.id,
+    groupId: task.taskGroupId,
+  },
+}); 
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -59,8 +65,14 @@ function SortableTaskCard({
   }
 
   return (
-    <div ref={setNodeRef} style={style} className={styles.taskCard}>
-      <div className={styles.taskDragHandle} {...listeners} {...attributes}>
+     <div
+    ref={setNodeRef}
+    style={style}
+    className={styles.taskCard}
+    {...listeners}
+    {...attributes}
+  >
+     <div className={styles.taskDragHandle}> 
         <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
           <circle cx="9"  cy="5"  r="1.5"/><circle cx="9"  cy="12" r="1.5"/><circle cx="9"  cy="19" r="1.5"/>
           <circle cx="15" cy="5"  r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="15" cy="19" r="1.5"/>
@@ -128,13 +140,23 @@ export function TaskGroupColumn({
     transform,
     transition,
     isDragging: isGroupDragging,
-  } = useSortable({ id: group.id });
+    } = useSortable({
+  id: group.id,
+  data: {
+    type: 'group',
+    groupId: group.id,
+  },
+});
 
   // useDroppable makes the column a drop zone for tasks
   // Use a prefixed id so it doesn't collide with the group's sortable id
   const { setNodeRef: setDropRef, isOver } = useDroppable({
-    id: `droppable-${group.id}`,
-  });
+  id: `droppable-${group.id}`,
+  data: {
+    type: 'group-dropzone',
+    groupId: group.id,
+  },
+}); 
 
   // Merge both refs onto the same div
   function mergeRefs(el: HTMLDivElement | null) {
@@ -223,17 +245,22 @@ export function TaskGroupColumn({
         >×</button>
       </div>
 
-      <div className={styles.tasks} role="list">
-        {sortedTasks.map(task => (
-          <SortableTaskCard
-            key={task.id}
-            task={task}
-            textColor={textColor}
-            onUpdate={onUpdateTask}
-            onDelete={taskId => onDeleteTask(group.id, taskId)}
-          />
-        ))}
-      </div>
+      <SortableContext
+  items={sortedTasks.map(t => t.id)}
+  strategy={verticalListSortingStrategy}
+>
+  <div className={styles.tasks} role="list">
+    {sortedTasks.map(task => (
+      <SortableTaskCard
+        key={task.id}
+        task={task}
+        textColor={textColor}
+        onUpdate={onUpdateTask}
+        onDelete={taskId => onDeleteTask(group.id, taskId)}
+      />
+    ))}
+  </div>
+</SortableContext>
 
       {isAddingTask ? (
         <form className={styles.addTaskForm} onSubmit={handleAddTask}>
