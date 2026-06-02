@@ -33,6 +33,7 @@ export function BoardView() {
 
   const [activeId, setActiveId] = useState<number | null>(null);
   const [activeType, setActiveType] = useState<'group' | 'task' | null>(null);
+  const [dragSourceGroupId, setDragSourceGroupId] = useState<number | null>(null);
 
   useEffect(() => {
     if (isNaN(parsedBoardId)) return;
@@ -41,7 +42,7 @@ export function BoardView() {
 
     boardsApi.getById(parsedBoardId)
       .then((boardData) => {
-        setBoardTitle(boardData.boardName);
+        setBoardTitle(boardData.taskBoardName); 
         setSortedGroups(boardData.taskGroups || []);
         setIsLoading(false);
       })
@@ -104,70 +105,162 @@ export function BoardView() {
 
   // ── DRAG ENGINE CORE LIFECYCLES ───────────────────────────────────────────
   function handleDragStart(event: DragStartEvent) {
-    const { active } = event;
-    const type = active.data.current?.type;
-    setActiveType(type === 'group' ? 'group' : 'task');
-    setActiveId(type === 'group' ? Number(active.data.current.groupId) : Number(active.id));
+  const { active } = event;
+
+  const type = active.data.current?.type;
+
+  setActiveType(type === 'group' ? 'group' : 'task');
+
+  setActiveId(
+    type === 'group'
+      ? Number(active.data.current?.groupId)
+      : Number(active.id)
+  );
+
+  if (type === 'task') {
+    setDragSourceGroupId(active.data.current?.groupId ?? null);
   }
+} 
 
   // 💡 NEW: Dynamically shifts tasks and opens layout spaces in real-time
   function handleDragOver(event: DragOverEvent) {
-    const { active, over } = event;
-    if (!over || activeType !== 'task') return;
+  const { active, over } = event;
 
-    const sourceId = Number(active.id);
-    const destId = Number(over.id);
-
-    const sourceGroupId = active.data.current?.groupId;
-    let destGroupId = over.data.current?.groupId;
-
-    if (over.data.current?.type === 'group-dropzone') {
-      destGroupId = over.data.current?.groupId;
-    }
-
-    if (!sourceGroupId || !destGroupId || sourceGroupId === destGroupId) return;
-
-    setSortedGroups(prev => {
-      const srcGroup = prev.find(g => g.id === sourceGroupId);
-      const dstGroup = prev.find(g => g.id === destGroupId);
-      if (!srcGroup || !dstGroup) return prev;
-
-      const srcTasks = [...srcGroup.tasks].sort((a, b) => a.position - b.position);
-      const dstTasks = [...dstGroup.tasks].sort((a, b) => a.position - b.position);
-
-      const movedTask = srcTasks.find(t => t.id === sourceId);
-      if (!movedTask) return prev;
-
-      const updatedSrcTasks = srcTasks.filter(t => t.id !== sourceId);
-      
-      let insertIdx = dstTasks.length;
-      if (over.data.current?.type === 'task') {
-        const targetIdx = dstTasks.findIndex(t => t.id === destId);
-        if (targetIdx !== -1) insertIdx = targetIdx;
-      }
-
-      const updatedDstTasks = [...dstTasks];
-      updatedDstTasks.splice(insertIdx, 0, { ...movedTask, taskGroupId: destGroupId });
-
-      return prev.map(g => {
-        if (g.id === sourceGroupId) return { ...g, tasks: updatedSrcTasks };
-        if (g.id === destGroupId) return { ...g, tasks: updatedDstTasks };
-        return g;
-      });
-    });
-
-    // Patch active layout item's parent group reference dynamically
-    if (active.data.current) {
-      active.data.current.groupId = destGroupId;
-    }
+  if (!over || activeType !== 'task') {
+    return;
   }
 
-  function handleDragEnd(event: DragEndEvent) {
+  const activeTaskId = Number(active.id);
+
+  setSortedGroups(prev => {
+    // Find where the task CURRENTLY exists
+    const sourceGroup = prev.find(g =>
+      g.tasks.some(t => t.id === activeTaskId)
+    );
+
+    if (!sourceGroup) {
+      return prev;
+    }
+
+    let destinationGroupId: number | undefined;
+
+    if (over.data.current?.type === 'group-dropzone') {
+      destinationGroupId = over.data.current.groupId;
+    }
+
+    if (over.data.current?.type === 'task') {
+      destinationGroupId = over.data.current.groupId;
+    }
+
+    if (!destinationGroupId) {
+      return prev;
+    }
+
+    const destinationGroup = prev.find(
+      g => g.id === destinationGroupId
+    );
+
+    if (!destinationGroup) {
+      return prev;
+    }
+
+    const sourceTasks = [...sourceGroup.tasks];
+    const destinationTasks =
+      sourceGroup.id === destinationGroup.id
+        ? sourceTasks
+        : [...destinationGroup.tasks];
+
+    const activeIndex = sourceTasks.findIndex(
+      t => t.id === activeTaskId
+    );
+
+    if (activeIndex === -1) {
+      return prev;
+    }
+
+    const activeTask = sourceTasks[activeIndex];
+
+    //
+    // SAME COLUMN
+    //
+    if (sourceGroup.id === destinationGroup.id) {
+      if (over.data.current?.type !== 'task') {
+        return prev;
+      }
+
+      const overIndex = sourceTasks.findIndex(
+        t => t.id === Number(over.id)
+      );
+
+      if (
+        overIndex === -1 ||
+        activeIndex === overIndex
+      ) {
+        return prev;
+      }
+
+      const reordered = arrayMove(
+        sourceTasks,
+        activeIndex,
+        overIndex
+      );
+
+      return prev.map(g =>
+        g.id === sourceGroup.id
+          ? { ...g, tasks: reordered }
+          : g
+      );
+    }
+
+    //
+    // DIFFERENT COLUMN
+    //
+    sourceTasks.splice(activeIndex, 1);
+
+    let insertIndex = destinationTasks.length;
+
+    if (over.data.current?.type === 'task') {
+      const overIndex = destinationTasks.findIndex(
+        t => t.id === Number(over.id)
+      );
+
+      if (overIndex !== -1) {
+        insertIndex = overIndex;
+      }
+    }
+
+    destinationTasks.splice(insertIndex, 0, {
+      ...activeTask,
+      taskGroupId: destinationGroup.id,
+    });
+
+    return prev.map(group => {
+      if (group.id === sourceGroup.id) {
+        return {
+          ...group,
+          tasks: sourceTasks,
+        };
+      }
+
+      if (group.id === destinationGroup.id) {
+        return {
+          ...group,
+          tasks: destinationTasks,
+        };
+      }
+
+      return group;
+    });
+  });
+} 
+
+  async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     
     const originalType = activeType;
     setActiveId(null);
     setActiveType(null);
+    setDragSourceGroupId(null); 
 
     if (!over) return;
 
@@ -190,42 +283,61 @@ export function BoardView() {
 
     // ── CASE B: COMMIT TASK POSITION ROUTING ──
     if (originalType === 'task') {
-      const sourceId = Number(active.id);
-      const sourceGroupId = active.data.current?.groupId;
-      
-      if (!sourceGroupId) return;
-      
-      const targetGroup = sortedGroups.find(g => g.id === sourceGroupId);
-      if (!targetGroup) return;
+  const movedTaskId = Number(active.id);
 
-      const finalTasks = [...targetGroup.tasks].sort((a, b) => a.position - b.position);
+  const sourceGroup = sortedGroups.find(
+    g => g.id === dragSourceGroupId
+  );
 
-      // If dropped inside same group, handle fallback sorting indices safely
-      if (over.data.current?.groupId === sourceGroupId && over.data.current?.type === 'task') {
-        const oldIdx = finalTasks.findIndex(t => t.id === sourceId);
-        const newIdx = finalTasks.findIndex(t => t.id === Number(over.id));
-        if (oldIdx !== -1 && newIdx !== -1 && oldIdx !== newIdx) {
-          const locallySorted = arrayMove(finalTasks, oldIdx, newIdx);
-          setSortedGroups(prev => prev.map(g => g.id === sourceGroupId ? { ...g, tasks: locallySorted } : g));
-          
-          tasksApi.reorder({
-            sourceGroupId,
-            destinationGroupId: sourceGroupId,
-            sourceTaskIds: locallySorted.map(t => t.id),
-            destinationTaskIds: locallySorted.map(t => t.id)
-          });
-          return;
-        }
-      }
+  if (!sourceGroup) {
+    return;
+  }
 
-      // Fire payload to save cross column adjustments made during handleDragOver
-      tasksApi.reorder({
-        sourceGroupId,
-        destinationGroupId: sourceGroupId,
-        sourceTaskIds: finalTasks.map(t => t.id),
-        destinationTaskIds: finalTasks.map(t => t.id)
-      });
-    }
+  const destinationGroup = sortedGroups.find(
+    g => g.tasks.some(t => t.id === movedTaskId)
+  );
+
+  if (!destinationGroup) {
+    return;
+  }
+
+  try {
+    await tasksApi.reorder({
+      sourceGroupId: sourceGroup.id,
+      destinationGroupId: destinationGroup.id,
+
+      sourceTaskIds: sourceGroup.tasks.map(
+        t => t.id
+      ),
+
+      destinationTaskIds: destinationGroup.tasks.map(
+        t => t.id
+      ),
+    });
+
+    const refreshedBoard =
+      await boardsApi.getById(parsedBoardId);
+
+    setSortedGroups(
+      [...refreshedBoard.taskGroups].sort(
+        (a, b) => a.position - b.position
+      )
+    );
+  } catch (err) {
+    console.error(err);
+
+    const refreshedBoard =
+      await boardsApi.getById(parsedBoardId);
+
+    setSortedGroups(
+      [...refreshedBoard.taskGroups].sort(
+        (a, b) => a.position - b.position
+      )
+    );
+  }
+
+  return;
+} 
   }
 
   const activeGroup = originalTypeGroupSelector(activeId, sortedGroups);

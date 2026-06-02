@@ -145,7 +145,7 @@ export function TaskGroupColumn({
     ...(group.color ? { background: group.color } : {}),
   }; 
 
-  const sortedTasks = [...group.tasks].sort((a, b) => a.position - b.position);
+  const sortedTasks = group.tasks; 
 
   return (
     <div
