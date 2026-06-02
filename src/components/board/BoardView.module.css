@@ -52,18 +52,14 @@
 
 .columns {
   display: flex;
-  flex-wrap: wrap;
-
-  align-content: flex-start;
-  align-items: flex-start;
-
+  flex-direction: row; /* Force side-by-side columns */
+  flex-wrap: nowrap;    /* Prevents columns from wrapping down a line */
   gap: 0.875rem;
-
   padding: 1.25rem 1.5rem;
-
-  overflow-y: auto;
-  overflow-x: hidden;
-
+  
+  overflow-x: auto;     /* Enables horizontal board scrolling */
+  overflow-y: hidden;   /* Prevents the board container from scrolling up/down */
+  align-items: flex-start;
   flex: 1;
 }
 

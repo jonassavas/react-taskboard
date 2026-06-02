@@ -1,11 +1,11 @@
 import { useEffect } from 'react';
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { StoreProvider, useStore } from './store/AppStore';
+import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
+import styles from './App.module.css';
 import { AuthPage } from './components/auth/AuthPage';
 import { BoardsListPage } from './components/board/BoardsListPage';
 import { BoardView } from './components/board/BoardView';
 import { boardsApi } from './services/api';
-import styles from './App.module.css';
+import { StoreProvider, useStore } from './store/AppStore';
 
 function AppInner() {
   const { state, dispatch } = useStore();
