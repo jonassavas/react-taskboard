@@ -6,7 +6,6 @@ import type { Task, TaskGroup } from '../../types';
 import { ColorPicker, getContrastColor } from '../common/ColorPicker';
 import styles from './TaskGroupColumn.module.css';
 
-// ── SORTABLE TASK CARD COMPONENT ──────────────────────────────────────────────
 function SortableTaskCard({
   task,
   textColor,
@@ -20,7 +19,6 @@ function SortableTaskCard({
   onDelete: (taskId: number) => Promise<any>;
   groupId: number;
 }) {
-  // Local state for editing individual task names
   const [isEditing, setIsEditing] = useState(false);
   const [taskName, setTaskName] = useState(task.taskName);
 
@@ -84,7 +82,6 @@ function SortableTaskCard({
   );
 }
 
-// ── COLUMN COMPONENT ──────────────────────────────────────────────────────────
 interface Props {
   group: TaskGroup;
   boardId: number;
@@ -118,7 +115,7 @@ export function TaskGroupColumn({
     transition,
     isDragging: isGroupDragging,
   } = useSortable({
-    id: `group-${group.id}`, // Using string template for the main layout context
+    id: `group-${group.id}`,
     data: {
       type: 'group',
       groupId: group.id,
@@ -160,7 +157,6 @@ export function TaskGroupColumn({
         isOver && isDraggingTask ? styles.dropTarget : '',
       ].join(' ')}
     >
-      {/* COLUMN HEADER */}
       <div className={styles.header}>
         <div className={styles.dragHandle} {...listeners} {...attributes}>
           ⠿
@@ -196,7 +192,6 @@ export function TaskGroupColumn({
         </div>
       </div>
 
-      {/* INNER SORTABLE CONTEXT FOR TASKS */}
       <SortableContext
         items={sortedTasks.map(t => t.id)}
         strategy={verticalListSortingStrategy}
@@ -209,13 +204,12 @@ export function TaskGroupColumn({
               textColor={textColor}
               onUpdate={onUpdateTask}
               onDelete={taskId => onDeleteTask(group.id, taskId)}
-              groupId={group.id} // Added missing prop connection
+              groupId={group.id}
             />
           ))}
         </div>
       </SortableContext>
 
-      {/* FOOTER FORM CONTROL */}
       <div onPointerDown={e => e.stopPropagation()}>
         {isAddingTask ? (
           <form className={styles.addTaskForm} onSubmit={async (e) => {
