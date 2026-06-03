@@ -103,8 +103,12 @@ export function BoardView() {
   async function handleUpdateGroup(groupId: number, data: any) {
     const updated = await groupsApi.update(parsedBoardId, groupId, data);
     setSortedGroups(prev =>
-      prev.map(g => g.id === groupId ? updated : g)
-    );
+  prev.map(g =>
+    g.id === groupId
+      ? { ...g, ...updated, tasks: g.tasks }
+      : g
+  )
+); 
   }
 
   async function handleDeleteGroup(groupId: number) {
@@ -323,12 +327,18 @@ export function BoardView() {
   // ─────────────────────────────────────────────
   // RENDER HELPERS
   // ─────────────────────────────────────────────
+  const dropAnimation = {
+  duration: 180,
+  easing: 'cubic-bezier(0.2, 0, 0, 1)',
+};
+
   const activeGroup =
-    sortedGroups.find(g => g.id === activeId) ?? null;
+  groupsRef.current.find(g => g.id === activeId) ?? null; 
 
   const activeTask =
-    sortedGroups.flatMap(g => g.tasks)
-      .find(t => t.id === activeId);
+  groupsRef.current
+    .flatMap(g => g.tasks)
+    .find(t => t.id === activeId); 
 
   if (isLoading) return <div className={styles.loading}>Loading...</div>;
 
@@ -437,77 +447,59 @@ export function BoardView() {
           </div>
         </SortableContext>
 
-       <DragOverlay dropAnimation={null}>
- {activeType === 'group' && activeGroup && (
-  <div
-    className={styles.columnOverlayPlaceholder}
-    style={{
-      width: 320,
-      maxHeight: 410,
-      overflow: 'hidden',
-
-      background: activeGroup.color || '#15151b',
-      borderRadius: 14,
-      padding: '0.75rem',
-      border: '2px dashed #6366f1',
-      boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.5)',
-      opacity: 0.95,
-
-      display: 'flex',
-      flexDirection: 'column',
-    }}
-  >
-    {/* header */}
+       <DragOverlay dropAnimation={dropAnimation}>
+  {activeType === 'group' && activeGroup && (
     <div
+      className={styles.columnOverlayPlaceholder}
       style={{
+        width: 320,
+        maxHeight: 410,
+        overflow: 'hidden',
+        background: activeGroup.color || '#15151b',
+        borderRadius: 14,
+        padding: '0.75rem',
+        border: '2px dashed #6366f1',
+        boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.5)',
+        opacity: 0.95,
         display: 'flex',
-        alignItems: 'center',
-        fontWeight: 700,
-        color: '#fff',
-        marginBottom: '0.75rem',
+        flexDirection: 'column',
       }}
     >
-      ⠿ <span style={{ marginLeft: 8 }}>{activeGroup.taskGroupName}</span>
-    </div>
-
-    {/* IMPORTANT: only preview first 6 tasks */}
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {activeGroup.tasks.slice(0, 6).map(t => (
-        <div
-          key={t.id}
-          style={{
-            background: '#1e1e2a',
-            padding: '0.5rem',
-            borderRadius: 8,
-            color: '#aaa',
-            border: '1px solid #2d2d3d',
-            fontSize: '0.85rem',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-          }}
-        >
-          {t.taskName}
-        </div>
-      ))}
-    </div>
-
-    {/* fade hint if more tasks exist */}
-    {activeGroup.tasks.length > 6 && (
       <div
         style={{
-          marginTop: 'auto',
-          fontSize: '0.75rem',
-          color: 'rgba(255,255,255,0.3)',
-          paddingTop: 8,
+          display: 'flex',
+          alignItems: 'center',
+          fontWeight: 700,
+          color: '#fff',
+          marginBottom: '0.75rem',
         }}
       >
-        + {activeGroup.tasks.length - 6} more
+        ⠿ <span style={{ marginLeft: 8 }}>{activeGroup.taskGroupName}</span>
       </div>
-    )}
-  </div>
-)} 
-</DragOverlay> 
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {activeGroup.tasks.slice(0, 6).map(t => (
+          <div
+            key={t.id}
+            style={{
+              background: '#1e1e2a',
+              padding: '0.5rem',
+              borderRadius: 8,
+              color: '#aaa',
+              border: '1px solid #2d2d3d',
+              fontSize: '0.85rem',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            {t.taskName}
+          </div>
+        ))}
+      </div>
+    </div>
+  )}
+</DragOverlay>
       </DndContext>
     </div>
   );
