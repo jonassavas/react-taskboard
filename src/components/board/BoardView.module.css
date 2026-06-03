@@ -52,15 +52,23 @@
 
 .columns {
   display: flex;
-  flex-direction: row; /* Force side-by-side columns */
-  flex-wrap: nowrap;    /* Prevents columns from wrapping down a line */
-  gap: 0.875rem;
-  padding: 1.25rem 1.5rem;
-  
-  overflow-x: auto;     /* Enables horizontal board scrolling */
-  overflow-y: hidden;   /* Prevents the board container from scrolling up/down */
+  flex-wrap: wrap;
+
+  align-content: flex-start;
   align-items: flex-start;
+
+  gap: 0.875rem;
+
+  padding: 1.25rem 1.5rem;
+
   flex: 1;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  min-height: 0;
+
+  scroll-behavior: smooth;
 }
 
 .columns::-webkit-scrollbar {
@@ -127,6 +135,14 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.addGroupSlot {
+  min-width: 220px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  flex: 0 0 200px;
 }
 
 .newGroupColorPreview {

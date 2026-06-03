@@ -2,22 +2,26 @@ import {
   DndContext,
   DragOverlay,
   PointerSensor,
-  closestCorners,
+  closestCenter,
+  pointerWithin,
   useSensor,
   useSensors,
   type DragEndEvent,
   type DragOverEvent,
-  type DragStartEvent,
+  type DragStartEvent
 } from '@dnd-kit/core';
+
 import {
   SortableContext,
   arrayMove,
   horizontalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { useEffect, useState } from 'react';
+
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { boardsApi, groupsApi, tasksApi } from '../../services/api';
 import type { TaskGroup } from '../../types';
+import { ColorPicker } from '../common/ColorPicker';
 import styles from './BoardView.module.css';
 import { TaskGroupColumn } from './TaskGroupColumn';
 
@@ -25,338 +29,314 @@ export function BoardView() {
   const { boardId } = useParams<{ boardId: string }>();
   const parsedBoardId = Number(boardId);
   const navigate = useNavigate();
-  
-  const [boardTitle, setBoardTitle] = useState<string>('');
+
+  const [boardTitle, setBoardTitle] = useState('');
   const [sortedGroups, setSortedGroups] = useState<TaskGroup[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const [activeId, setActiveId] = useState<number | null>(null);
   const [activeType, setActiveType] = useState<'group' | 'task' | null>(null);
   const [dragSourceGroupId, setDragSourceGroupId] = useState<number | null>(null);
+  const groupsRef = useRef<TaskGroup[]>([]);
 
+  const [isAddingGroup, setIsAddingGroup] = useState(false);
+  const [newGroupName, setNewGroupName] = useState('');
+  const [newGroupColor, setNewGroupColor] = useState<string | null>(null);
+
+  // ─────────────────────────────────────────────
+  // LOAD BOARD
+  // ─────────────────────────────────────────────
   useEffect(() => {
     if (isNaN(parsedBoardId)) return;
+
     setIsLoading(true);
     setErrorMsg(null);
 
     boardsApi.getById(parsedBoardId)
-      .then((boardData) => {
-        setBoardTitle(boardData.taskBoardName); 
-        setSortedGroups(boardData.taskGroups || []);
+      .then(board => {
+        setBoardTitle(board.taskBoardName);
+        setSortedGroups(board.taskGroups || []);
         setIsLoading(false);
       })
-      .catch((err) => {
-        console.error("Error loading board:", err);
-        setErrorMsg("Failed to load board data.");
+      .catch(err => {
+        console.error(err);
+        setErrorMsg('Failed to load board');
         setIsLoading(false);
       });
   }, [parsedBoardId]);
 
+  useEffect(() => {
+  groupsRef.current = sortedGroups;
+}, [sortedGroups]);
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 3, 
-      },
+      activationConstraint: { distance: 3 },
     })
   );
 
-  // ── MUTATION ROUTINES ──────────────────────────────────────────────────────
-  async function handleUpdateGroup(groupId: number, data: any) {
+  // ─────────────────────────────────────────────
+  // GROUP CRUD (FIXED: no refresh needed)
+  // ─────────────────────────────────────────────
+  async function handleCreateGroup(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newGroupName.trim()) return;
+
     try {
-      const updated = await groupsApi.update(parsedBoardId, groupId, {
-        taskGroupName: data.taskGroupName,
-        color: data.color === null ? undefined : data.color
+      const created = await groupsApi.create(parsedBoardId, {
+        taskGroupName: newGroupName.trim(),
+        taskBoardId: parsedBoardId,
+        color: newGroupColor ?? undefined,
       });
-      setSortedGroups(prev => prev.map(g => g.id === groupId ? updated : g));
-    } catch (e) { console.error(e); }
+
+      setSortedGroups(prev => [...prev, { ...created, tasks: [] }]);
+
+      setNewGroupName('');
+      setNewGroupColor(null);
+      setIsAddingGroup(false);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async function handleUpdateGroup(groupId: number, data: any) {
+    const updated = await groupsApi.update(parsedBoardId, groupId, data);
+    setSortedGroups(prev =>
+      prev.map(g => g.id === groupId ? updated : g)
+    );
   }
 
   async function handleDeleteGroup(groupId: number) {
-    try {
-      await groupsApi.delete(parsedBoardId, groupId);
-      setSortedGroups(prev => prev.filter(g => g.id !== groupId));
-    } catch (e) { console.error(e); }
+    await groupsApi.delete(parsedBoardId, groupId);
+    setSortedGroups(prev => prev.filter(g => g.id !== groupId));
   }
 
+  // ─────────────────────────────────────────────
+  // TASK CRUD (LOCAL FIRST)
+  // ─────────────────────────────────────────────
   async function handleCreateTask(groupId: number, data: any) {
-    try {
-      const newTask = await tasksApi.create(groupId, data);
-      setSortedGroups(prev => prev.map(g => g.id === groupId ? { ...g, tasks: [...g.tasks, newTask] } : g));
-    } catch (e) { console.error(e); }
+    const newTask = await tasksApi.create(groupId, data);
+
+    setSortedGroups(prev =>
+      prev.map(g =>
+        g.id === groupId
+          ? { ...g, tasks: [...g.tasks, newTask] }
+          : g
+      )
+    );
   }
 
   async function handleUpdateTask(taskId: number, data: any) {
-    try {
-      const updated = await tasksApi.update(taskId, data);
-      setSortedGroups(prev => prev.map(g => ({
+    const updated = await tasksApi.update(taskId, data);
+
+    setSortedGroups(prev =>
+      prev.map(g => ({
         ...g,
-        tasks: g.tasks.map(t => t.id === taskId ? updated : t)
-      })));
-    } catch (e) { console.error(e); }
+        tasks: g.tasks.map(t => t.id === taskId ? updated : t),
+      }))
+    );
   }
 
   async function handleDeleteTask(groupId: number, taskId: number) {
-    try {
-      await tasksApi.delete(taskId);
-      setSortedGroups(prev => prev.map(g => g.id === groupId ? { ...g, tasks: g.tasks.filter(t => t.id !== taskId) } : g));
-    } catch (e) { console.error(e); }
+    await tasksApi.delete(taskId);
+
+    setSortedGroups(prev =>
+      prev.map(g =>
+        g.id === groupId
+          ? { ...g, tasks: g.tasks.filter(t => t.id !== taskId) }
+          : g
+      )
+    );
   }
 
-  // ── DRAG ENGINE CORE LIFECYCLES ───────────────────────────────────────────
+  // ─────────────────────────────────────────────
+  // DRAG START
+  // ─────────────────────────────────────────────
   function handleDragStart(event: DragStartEvent) {
-  const { active } = event;
+    const { active } = event;
 
-  const type = active.data.current?.type;
+    const type = active.data.current?.type;
+    setActiveType(type === 'group' ? 'group' : 'task');
 
-  setActiveType(type === 'group' ? 'group' : 'task');
-
-  setActiveId(
-    type === 'group'
+    setActiveId(type === 'group'
       ? Number(active.data.current?.groupId)
       : Number(active.id)
-  );
+    );
 
-  if (type === 'task') {
-    setDragSourceGroupId(active.data.current?.groupId ?? null);
+    if (type === 'task') {
+      setDragSourceGroupId(active.data.current?.groupId ?? null);
+    }
   }
-} 
 
-  // 💡 NEW: Dynamically shifts tasks and opens layout spaces in real-time
+  // ─────────────────────────────────────────────
+  // DRAG OVER (FIXED: stable + no warmup bug)
+  // ─────────────────────────────────────────────
   function handleDragOver(event: DragOverEvent) {
-  const { active, over } = event;
+    const { active, over } = event;
+    if (!over || activeType !== 'task') return;
 
-  if (!over || activeType !== 'task') {
-    return;
+    const activeTaskId = Number(active.id);
+
+    setSortedGroups(prev => {
+      const sourceGroup = prev.find(g =>
+        g.tasks.some(t => t.id === activeTaskId)
+      );
+
+      if (!sourceGroup) return prev;
+
+      const overGroupId =
+        over.data.current?.groupId ??
+        Number(over.id.toString().replace('group-dropzone-', ''));
+
+      if (!overGroupId) return prev;
+
+      const destinationGroup = prev.find(g => g.id === overGroupId);
+      if (!destinationGroup) return prev;
+
+      const sourceTasks = [...sourceGroup.tasks];
+
+      const destTasks = sourceGroup.id === destinationGroup.id
+        ? sourceTasks
+        : [...destinationGroup.tasks]; 
+
+      const fromIndex = sourceTasks.findIndex(t => t.id === activeTaskId);
+      if (fromIndex === -1) return prev;
+
+      const activeTask = sourceTasks[fromIndex];
+
+      // SAME GROUP
+      if (sourceGroup.id === destinationGroup.id) {
+        const overIndex = destTasks.findIndex(t => t.id === Number(over.id));
+
+        const toIndex =
+          overIndex === -1 ? destTasks.length : overIndex;
+
+        const reordered = arrayMove(sourceTasks, fromIndex, toIndex);
+
+        return prev.map(g =>
+          g.id === sourceGroup.id
+            ? { ...g, tasks: reordered }
+            : g
+        );
+      }
+
+      // DIFFERENT GROUP
+      sourceTasks.splice(fromIndex, 1);
+
+      const overIndex = destTasks.findIndex(t => t.id === Number(over.id));
+
+      const insertIndex =
+        overIndex === -1
+          ? destTasks.length
+          : Math.max(0, Math.min(overIndex, destTasks.length));
+
+      destTasks.splice(insertIndex, 0, {
+        ...activeTask,
+        taskGroupId: destinationGroup.id,
+      });
+
+
+      return prev.map(g => {
+        if (g.id === sourceGroup.id) return { ...g, tasks: sourceTasks };
+        if (g.id === destinationGroup.id) return { ...g, tasks: destTasks };
+        return g;
+      });
+    });
   }
 
-  const activeTaskId = Number(active.id);
-
-  setSortedGroups(prev => {
-    // Find where the task CURRENTLY exists
-    const sourceGroup = prev.find(g =>
-      g.tasks.some(t => t.id === activeTaskId)
-    );
-
-    if (!sourceGroup) {
-      return prev;
-    }
-
-    let destinationGroupId: number | undefined;
-
-    if (over.data.current?.type === 'group-dropzone') {
-      destinationGroupId = over.data.current.groupId;
-    }
-
-    if (over.data.current?.type === 'task') {
-      destinationGroupId = over.data.current.groupId;
-    }
-
-    if (!destinationGroupId) {
-      return prev;
-    }
-
-    const destinationGroup = prev.find(
-      g => g.id === destinationGroupId
-    );
-
-    if (!destinationGroup) {
-      return prev;
-    }
-
-    const sourceTasks = [...sourceGroup.tasks];
-    const destinationTasks =
-      sourceGroup.id === destinationGroup.id
-        ? sourceTasks
-        : [...destinationGroup.tasks];
-
-    const activeIndex = sourceTasks.findIndex(
-      t => t.id === activeTaskId
-    );
-
-    if (activeIndex === -1) {
-      return prev;
-    }
-
-    const activeTask = sourceTasks[activeIndex];
-
-    //
-    // SAME COLUMN
-    //
-    if (sourceGroup.id === destinationGroup.id) {
-      if (over.data.current?.type !== 'task') {
-        return prev;
-      }
-
-      const overIndex = sourceTasks.findIndex(
-        t => t.id === Number(over.id)
-      );
-
-      if (
-        overIndex === -1 ||
-        activeIndex === overIndex
-      ) {
-        return prev;
-      }
-
-      const reordered = arrayMove(
-        sourceTasks,
-        activeIndex,
-        overIndex
-      );
-
-      return prev.map(g =>
-        g.id === sourceGroup.id
-          ? { ...g, tasks: reordered }
-          : g
-      );
-    }
-
-    //
-    // DIFFERENT COLUMN
-    //
-    sourceTasks.splice(activeIndex, 1);
-
-    let insertIndex = destinationTasks.length;
-
-    if (over.data.current?.type === 'task') {
-      const overIndex = destinationTasks.findIndex(
-        t => t.id === Number(over.id)
-      );
-
-      if (overIndex !== -1) {
-        insertIndex = overIndex;
-      }
-    }
-
-    destinationTasks.splice(insertIndex, 0, {
-      ...activeTask,
-      taskGroupId: destinationGroup.id,
-    });
-
-    return prev.map(group => {
-      if (group.id === sourceGroup.id) {
-        return {
-          ...group,
-          tasks: sourceTasks,
-        };
-      }
-
-      if (group.id === destinationGroup.id) {
-        return {
-          ...group,
-          tasks: destinationTasks,
-        };
-      }
-
-      return group;
-    });
-  });
-} 
-
+  // ─────────────────────────────────────────────
+  // DRAG END (ONLY COMMIT GROUP REORDER HERE)
+  // ─────────────────────────────────────────────
   async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
-    
-    const originalType = activeType;
+
+    const type = activeType;
+
     setActiveId(null);
     setActiveType(null);
-    setDragSourceGroupId(null); 
+    setDragSourceGroupId(null);
 
     if (!over) return;
 
-    // ── CASE A: COMMIT COLUMN ROUTING REORDERING ──
-    if (originalType === 'group') {
-      const sourceGroupId = active.data.current?.groupId;
-      const destGroupId = over.data.current?.groupId;
+    // GROUP REORDER
+    if (type === 'group') {
+      const sourceId = active.data.current?.groupId;
+      const destId = over.data.current?.groupId;
 
-      if (!sourceGroupId || !destGroupId || sourceGroupId === destGroupId) return;
-      
-      const oldIdx = sortedGroups.findIndex(g => g.id === sourceGroupId);
-      const newIdx = sortedGroups.findIndex(g => g.id === destGroupId);
-      if (oldIdx === -1 || newIdx === -1) return;
+      if (!sourceId || !destId || sourceId === destId) return;
 
-      const reordered = arrayMove(sortedGroups, oldIdx, newIdx);
+      const oldIndex = sortedGroups.findIndex(g => g.id === sourceId);
+      const newIndex = sortedGroups.findIndex(g => g.id === destId);
+
+      if (oldIndex === -1 || newIndex === -1) return;
+
+      const reordered = arrayMove(sortedGroups, oldIndex, newIndex);
+
       setSortedGroups(reordered);
-      groupsApi.reorder(parsedBoardId, reordered.map(g => g.id));
-      return;
+      await groupsApi.reorder(parsedBoardId, reordered.map(g => g.id));
     }
 
-    // ── CASE B: COMMIT TASK POSITION ROUTING ──
-    if (originalType === 'task') {
-  const movedTaskId = Number(active.id);
+    if (type === 'task') {
+  const sourceGroupId = dragSourceGroupId;
 
-  const sourceGroup = sortedGroups.find(
-    g => g.id === dragSourceGroupId
-  );
+  if (!sourceGroupId) return;
 
-  if (!sourceGroup) {
-    return;
-  }
+  const destinationGroupId =
+    over.data.current?.groupId ??
+    Number(over.id.toString().replace('group-dropzone-', ''));
 
-  const destinationGroup = sortedGroups.find(
-    g => g.tasks.some(t => t.id === movedTaskId)
-  );
+  if (!destinationGroupId) return;
 
-  if (!destinationGroup) {
-    return;
-  }
+  // ALWAYS use latest UI state (not closure state)
+  const currentGroups = groupsRef.current;
+
+  const sourceGroup = currentGroups.find(g => g.id === sourceGroupId);
+  const destinationGroup = currentGroups.find(g => g.id === destinationGroupId);
+
+  if (!sourceGroup || !destinationGroup) return;
+
+  const isSameGroup = sourceGroupId === destinationGroupId;
+
+  const payload = {
+    sourceGroupId,
+    destinationGroupId,
+
+    sourceTaskIds: sourceGroup.tasks.map(t => t.id),
+
+    destinationTaskIds: isSameGroup
+      ? sourceGroup.tasks.map(t => t.id)
+      : destinationGroup.tasks.map(t => t.id),
+  };
 
   try {
-    await tasksApi.reorder({
-      sourceGroupId: sourceGroup.id,
-      destinationGroupId: destinationGroup.id,
-
-      sourceTaskIds: sourceGroup.tasks.map(
-        t => t.id
-      ),
-
-      destinationTaskIds: destinationGroup.tasks.map(
-        t => t.id
-      ),
-    });
-
-    const refreshedBoard =
-      await boardsApi.getById(parsedBoardId);
-
-    setSortedGroups(
-      [...refreshedBoard.taskGroups].sort(
-        (a, b) => a.position - b.position
-      )
-    );
+    await tasksApi.reorder(payload);
   } catch (err) {
-    console.error(err);
+    console.error('Failed persisting task reorder', err);
+  }
+}
 
-    const refreshedBoard =
-      await boardsApi.getById(parsedBoardId);
-
-    setSortedGroups(
-      [...refreshedBoard.taskGroups].sort(
-        (a, b) => a.position - b.position
-      )
-    );
+    
   }
 
-  return;
-} 
-  }
 
-  const activeGroup = originalTypeGroupSelector(activeId, sortedGroups);
-  const activeTask = sortedGroups.flatMap(g => g.tasks).find(t => t.id === activeId);
+  // ─────────────────────────────────────────────
+  // RENDER HELPERS
+  // ─────────────────────────────────────────────
+  const activeGroup =
+    sortedGroups.find(g => g.id === activeId) ?? null;
 
-  function originalTypeGroupSelector(id: number | null, groups: TaskGroup[]) {
-    if (!id) return null;
-    return groups.find(g => g.id === id);
-  }
+  const activeTask =
+    sortedGroups.flatMap(g => g.tasks)
+      .find(t => t.id === activeId);
 
-  if (isLoading) {
-    return <div className={styles.loading}>Loading board columns...</div>;
-  }
+  if (isLoading) return <div className={styles.loading}>Loading...</div>;
 
   if (errorMsg) {
     return (
-      <div className={styles.loading} style={{ color: '#f87171' }}>
-        {errorMsg} 
-        <button onClick={() => navigate('/overview')} className={styles.backBtn}>Back</button>
+      <div className={styles.loading}>
+        {errorMsg}
+        <button onClick={() => navigate('/overview')}>Back</button>
       </div>
     );
   }
@@ -365,20 +345,27 @@ export function BoardView() {
     <div className={styles.wrapper}>
       <div className={styles.header}>
         <div className={styles.headerLeft}>
-          <button className={styles.backBtn} onClick={() => navigate('/overview')}>← Back</button>
+          <button className={styles.backBtn} onClick={() => navigate('/overview')}>
+            ← Back
+          </button>
           <h1 className={styles.boardTitle}>{boardTitle}</h1>
         </div>
       </div>
 
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCorners}
+        collisionDetection={(args) =>
+          pointerWithin(args).length ? pointerWithin(args) : closestCenter(args)
+        }
         onDragStart={handleDragStart}
-        onDragOver={handleDragOver} // 💡 Connected state bridge
+        onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
         <SortableContext
-          items={sortedGroups.map(g => `group-${g.id}`)}
+          items={[
+            ...sortedGroups.map(g => `group-${g.id}`),
+            'add-group'
+          ]}
           strategy={horizontalListSortingStrategy}
         >
           <div className={styles.columns}>
@@ -395,42 +382,132 @@ export function BoardView() {
                 onDeleteTask={handleDeleteTask}
               />
             ))}
+
+            {/* ADD GROUP BUTTON */}
+            <div className={styles.addGroupSlot}>
+              {isAddingGroup ? (
+                <form className={styles.newGroupForm} onSubmit={handleCreateGroup}>
+                  <div className={styles.newGroupTitleRow}>
+                    <input
+                      className={styles.newGroupInput}
+                      value={newGroupName}
+                      onChange={e => setNewGroupName(e.target.value)}
+                      placeholder="Column name"
+                      autoFocus
+                    />
+                    <ColorPicker
+                      currentColor={newGroupColor}
+                      onSelect={setNewGroupColor}
+                    />
+                  </div>
+
+                  {newGroupColor && (
+                    <div
+                      className={styles.newGroupColorPreview}
+                      style={{ background: newGroupColor }}
+                    />
+                  )}
+
+                  <div className={styles.newGroupActions}>
+                    <button className={styles.confirmBtn} type="submit">
+                      Add column
+                    </button>
+                    <button
+                      className={styles.cancelBtn}
+                      type="button"
+                      onClick={() => {
+                        setIsAddingGroup(false);
+                        setNewGroupName('');
+                        setNewGroupColor(null);
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <button
+                  className={styles.addGroupBtn}
+                  onClick={() => setIsAddingGroup(true)}
+                >
+                  + Add column
+                </button>
+              )}
+            </div>
           </div>
         </SortableContext>
 
-        <DragOverlay dropAnimation={null}>
-          {/* 💡 FIXED: Renders the beautiful column track container skeleton */}
-          {activeType === 'group' && activeGroup && (
-            <div 
-              className={styles.columnOverlayPlaceholder}
-              style={{
-                width: 300,
-                minHeight: 500,
-                background: activeGroup.color || '#15151b',
-                borderRadius: 14,
-                padding: '1rem',
-                border: '2px dashed #6366f1',
-                boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.5)',
-                opacity: 0.95
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', fontWeight: 'bold', color: '#fff', marginBottom: '1rem' }}>
-                ⠿ <span style={{ marginLeft: 8 }}>{activeGroup.taskGroupName}</span>
-              </div>
-              {activeGroup.tasks.map(t => (
-                <div key={t.id} style={{ background: '#1e1e2a', padding: '0.6rem', borderRadius: 8, marginBottom: 8, color: '#aaa', border: '1px solid #2d2d3d' }}>
-                  {t.taskName}
-                </div>
-              ))}
-            </div>
-          )}
+       <DragOverlay dropAnimation={null}>
+ {activeType === 'group' && activeGroup && (
+  <div
+    className={styles.columnOverlayPlaceholder}
+    style={{
+      width: 320,
+      maxHeight: 410,
+      overflow: 'hidden',
 
-          {activeType === 'task' && activeTask && (
-            <div style={{ background: '#1e1e2a', border: '1px solid #6366f1', padding: '0.5rem 0.6rem', borderRadius: 8, color: '#fff', boxShadow: '0px 5px 15px rgba(0,0,0,0.4)', width: 280, transform: 'rotate(2deg)' }}>
-              ⠿ {activeTask.taskName}
-            </div>
-          )}
-        </DragOverlay>
+      background: activeGroup.color || '#15151b',
+      borderRadius: 14,
+      padding: '0.75rem',
+      border: '2px dashed #6366f1',
+      boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.5)',
+      opacity: 0.95,
+
+      display: 'flex',
+      flexDirection: 'column',
+    }}
+  >
+    {/* header */}
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        fontWeight: 700,
+        color: '#fff',
+        marginBottom: '0.75rem',
+      }}
+    >
+      ⠿ <span style={{ marginLeft: 8 }}>{activeGroup.taskGroupName}</span>
+    </div>
+
+    {/* IMPORTANT: only preview first 6 tasks */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {activeGroup.tasks.slice(0, 6).map(t => (
+        <div
+          key={t.id}
+          style={{
+            background: '#1e1e2a',
+            padding: '0.5rem',
+            borderRadius: 8,
+            color: '#aaa',
+            border: '1px solid #2d2d3d',
+            fontSize: '0.85rem',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
+          {t.taskName}
+        </div>
+      ))}
+    </div>
+
+    {/* fade hint if more tasks exist */}
+    {activeGroup.tasks.length > 6 && (
+      <div
+        style={{
+          marginTop: 'auto',
+          fontSize: '0.75rem',
+          color: 'rgba(255,255,255,0.3)',
+          paddingTop: 8,
+        }}
+      >
+        + {activeGroup.tasks.length - 6} more
+      </div>
+    )}
+  </div>
+)} 
+</DragOverlay> 
       </DndContext>
     </div>
   );
