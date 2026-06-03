@@ -14,7 +14,7 @@ import {
 import {
   SortableContext,
   arrayMove,
-  horizontalListSortingStrategy,
+  rectSortingStrategy,
 } from '@dnd-kit/sortable';
 
 import { useEffect, useRef, useState } from 'react';
@@ -366,7 +366,7 @@ export function BoardView() {
             ...sortedGroups.map(g => `group-${g.id}`),
             'add-group'
           ]}
-          strategy={horizontalListSortingStrategy}
+          strategy={rectSortingStrategy}
         >
           <div className={styles.columns}>
             {sortedGroups.map(group => (
