@@ -67,8 +67,8 @@ export function BoardView() {
   }, [parsedBoardId]);
 
   useEffect(() => {
-  groupsRef.current = sortedGroups;
-}, [sortedGroups]);
+    groupsRef.current = sortedGroups;
+  }, [sortedGroups]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -77,10 +77,10 @@ export function BoardView() {
   );
 
   const normalizeGroup = (g: any): TaskGroup => ({
-  ...g,
-  color: g.color ?? null,
-  tasks: g.tasks ?? [],
-});
+    ...g,
+    color: g.color ?? null,
+    tasks: g.tasks ?? [],
+  });
 
   // ─────────────────────────────────────────────
   // GROUP CRUD (FIXED: no refresh needed)
@@ -97,13 +97,13 @@ export function BoardView() {
       });
 
       setSortedGroups(prev => [
-          ...prev,
-          {
-            ...created,
-            color: created.color ?? newGroupColor ?? null,
-            tasks: []
-          }
-        ]); 
+        ...prev,
+        {
+          ...created,
+          color: created.color ?? newGroupColor ?? null,
+          tasks: []
+        }
+      ]);
 
       setNewGroupName('');
       setNewGroupColor(null);
@@ -116,12 +116,12 @@ export function BoardView() {
   async function handleUpdateGroup(groupId: number, data: any) {
     const updated = await groupsApi.update(parsedBoardId, groupId, data);
     setSortedGroups(prev =>
-  prev.map(g =>
-    g.id === groupId
-      ? { ...g, ...updated, tasks: g.tasks }
-      : g
-  )
-); 
+      prev.map(g =>
+        g.id === groupId
+          ? { ...g, ...updated, tasks: g.tasks }
+          : g
+      )
+    );
   }
 
   async function handleDeleteGroup(groupId: number) {
@@ -215,7 +215,7 @@ export function BoardView() {
 
       const destTasks = sourceGroup.id === destinationGroup.id
         ? sourceTasks
-        : [...destinationGroup.tasks]; 
+        : [...destinationGroup.tasks];
 
       const fromIndex = sourceTasks.findIndex(t => t.id === activeTaskId);
       if (fromIndex === -1) return prev;
@@ -295,45 +295,45 @@ export function BoardView() {
     }
 
     if (type === 'task') {
-  const sourceGroupId = dragSourceGroupId;
+      const sourceGroupId = dragSourceGroupId;
 
-  if (!sourceGroupId) return;
+      if (!sourceGroupId) return;
 
-  const destinationGroupId =
-    over.data.current?.groupId ??
-    Number(over.id.toString().replace('group-dropzone-', ''));
+      const destinationGroupId =
+        over.data.current?.groupId ??
+        Number(over.id.toString().replace('group-dropzone-', ''));
 
-  if (!destinationGroupId) return;
+      if (!destinationGroupId) return;
 
-  // ALWAYS use latest UI state (not closure state)
-  const currentGroups = groupsRef.current;
+      // ALWAYS use latest UI state (not closure state)
+      const currentGroups = groupsRef.current;
 
-  const sourceGroup = currentGroups.find(g => g.id === sourceGroupId);
-  const destinationGroup = currentGroups.find(g => g.id === destinationGroupId);
+      const sourceGroup = currentGroups.find(g => g.id === sourceGroupId);
+      const destinationGroup = currentGroups.find(g => g.id === destinationGroupId);
 
-  if (!sourceGroup || !destinationGroup) return;
+      if (!sourceGroup || !destinationGroup) return;
 
-  const isSameGroup = sourceGroupId === destinationGroupId;
+      const isSameGroup = sourceGroupId === destinationGroupId;
 
-  const payload = {
-    sourceGroupId,
-    destinationGroupId,
+      const payload = {
+        sourceGroupId,
+        destinationGroupId,
 
-    sourceTaskIds: sourceGroup.tasks.map(t => t.id),
+        sourceTaskIds: sourceGroup.tasks.map(t => t.id),
 
-    destinationTaskIds: isSameGroup
-      ? sourceGroup.tasks.map(t => t.id)
-      : destinationGroup.tasks.map(t => t.id),
-  };
+        destinationTaskIds: isSameGroup
+          ? sourceGroup.tasks.map(t => t.id)
+          : destinationGroup.tasks.map(t => t.id),
+      };
 
-  try {
-    await tasksApi.reorder(payload);
-  } catch (err) {
-    console.error('Failed persisting task reorder', err);
-  }
-}
+      try {
+        await tasksApi.reorder(payload);
+      } catch (err) {
+        console.error('Failed persisting task reorder', err);
+      }
+    }
 
-    
+
   }
 
 
@@ -341,17 +341,17 @@ export function BoardView() {
   // RENDER HELPERS
   // ─────────────────────────────────────────────
   const dropAnimation = {
-  duration: 180,
-  easing: 'cubic-bezier(0.2, 0, 0, 1)',
-};
+    duration: 180,
+    easing: 'cubic-bezier(0.2, 0, 0, 1)',
+  };
 
   const activeGroup =
-  groupsRef.current.find(g => g.id === activeId) ?? null; 
+    groupsRef.current.find(g => g.id === activeId) ?? null;
 
   const activeTask =
-  groupsRef.current
-    .flatMap(g => g.tasks)
-    .find(t => t.id === activeId); 
+    groupsRef.current
+      .flatMap(g => g.tasks)
+      .find(t => t.id === activeId);
 
   if (isLoading) return <div className={styles.loading}>Loading...</div>;
 
@@ -460,58 +460,57 @@ export function BoardView() {
           </div>
         </SortableContext>
 
-      <DragOverlay dropAnimation={dropAnimation}>
-  {activeType === 'group' && activeGroup && (
-    <div
-      className={styles.columnOverlayPlaceholder}
-      style={{
-        width: 320,
-        maxHeight: 410,
-        overflow: 'hidden',
-        background: activeGroup.color || '#15151b',
-        borderRadius: 14,
-        padding: '0.75rem',
-        border: '2px dashed #6366f1',
-        boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.5)',
-        opacity: 0.95,
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
-      <div style={{ fontWeight: 700, color: '#fff', marginBottom: 12 }}>
-        ⠿ {activeGroup.taskGroupName}
-      </div>
+        <DragOverlay dropAnimation={dropAnimation}>
+          {activeType === 'group' && activeGroup && (
+            <div
+              className={styles.columnOverlayPlaceholder}
+              style={{
+                width: 320,
+                maxHeight: 410,
+                overflow: 'hidden',
+                background: activeGroup.color || '#15151b',
+                borderRadius: 14,
+                padding: '0.75rem',
+                border: '2px dashed #6366f1',
+                boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.5)',
+                opacity: 0.95,
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              <div style={{ fontWeight: 700, color: '#fff', marginBottom: 12 }}>
+                ⠿ {activeGroup.taskGroupName}
+              </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {activeGroup.tasks.slice(0, 6).map(t => (
-          <div
-            key={t.id}
-            style={{
-              background: '#1e1e2a',
-              padding: '0.5rem',
-              borderRadius: 8,
-              color: '#aaa',
-              border: '1px solid #2d2d3d',
-              fontSize: '0.85rem',
-            }}
-          >
-            {t.taskName}
-          </div>
-        ))}
-      </div>
-    </div>
-  )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {activeGroup.tasks.slice(0, 6).map(t => (
+                  <div
+                    key={t.id}
+                    style={{
+                      background: '#1e1e2a',
+                      padding: '0.5rem',
+                      borderRadius: 8,
+                      color: '#aaa',
+                      border: '1px solid #2d2d3d',
+                      fontSize: '0.85rem',
+                    }}
+                  >
+                    {t.taskName}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
-  {/* ✅ ADD THIS: TASK OVERLAY */}
-  {activeType === 'task' && activeTask && (
-    <div className={styles.taskOverlay}>
-      <div className={styles.taskOverlayHandle}>⠿</div>
-      <div className={styles.taskOverlayText}>
-        {activeTask.taskName}
-      </div>
-    </div>
-  )}
-</DragOverlay> 
+          {activeType === 'task' && activeTask && (
+            <div className={styles.taskOverlay}>
+              <div className={styles.taskOverlayHandle}>⠿</div>
+              <div className={styles.taskOverlayText}>
+                {activeTask.taskName}
+              </div>
+            </div>
+          )}
+        </DragOverlay>
       </DndContext>
     </div>
   );

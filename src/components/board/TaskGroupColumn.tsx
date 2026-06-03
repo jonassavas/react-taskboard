@@ -49,9 +49,9 @@ function SortableTaskCard({
             setIsEditing(false);
           }}
           onKeyDown={e => {
-            if (e.key === 'Enter') { 
-              onUpdate(task.id, { taskName }); 
-              setIsEditing(false); 
+            if (e.key === 'Enter') {
+              onUpdate(task.id, { taskName });
+              setIsEditing(false);
             }
             if (e.key === 'Escape') {
               setTaskName(task.taskName);
@@ -69,7 +69,7 @@ function SortableTaskCard({
       <div className={styles.taskDragHandle} {...listeners} {...attributes}>
         ⠿
       </div>
-      
+
       <p className={styles.taskName} style={textColor ? { color: textColor } : undefined}>
         {task.taskName}
       </p>
@@ -123,12 +123,12 @@ export function TaskGroupColumn({
   });
 
   const { setNodeRef: setDropRef, isOver } = useDroppable({
-    id: `group-dropzone-${group.id}`, 
+    id: `group-dropzone-${group.id}`,
     data: {
       type: 'group-dropzone',
       groupId: group.id,
     },
-  }); 
+  });
 
   function mergeRefs(el: HTMLDivElement | null) {
     setSortableRef(el);
@@ -148,9 +148,9 @@ export function TaskGroupColumn({
     ...(textColor
       ? { ['--col-text' as any]: textColor }
       : { ['--col-text' as any]: undefined }),
-  }; 
+  };
 
-  const sortedTasks = group.tasks; 
+  const sortedTasks = group.tasks;
 
   return (
     <div
@@ -178,8 +178,8 @@ export function TaskGroupColumn({
             />
           </div>
         ) : (
-          <button 
-            className={styles.titleBtn} 
+          <button
+            className={styles.titleBtn}
             onClick={(e) => { e.stopPropagation(); setIsEditingTitle(true); }}
             onPointerDown={e => e.stopPropagation()}
           >
@@ -192,10 +192,10 @@ export function TaskGroupColumn({
           <ColorPicker
             currentColor={group.color}
             onSelect={color =>
-                onUpdateGroup(group.id, {
-                  color: color ?? null
-                })
-              } 
+              onUpdateGroup(group.id, {
+                color: color ?? null
+              })
+            }
           />
           <button className={styles.deleteGroupBtn} onClick={() => onDeleteGroup(group.id)}>×</button>
         </div>
@@ -228,11 +228,11 @@ export function TaskGroupColumn({
             setNewTaskName('');
             setIsAddingTask(false);
           }}>
-            <input 
-              className={styles.addTaskInput} 
-              value={newTaskName} 
-              onChange={e => setNewTaskName(e.target.value)} 
-              autoFocus 
+            <input
+              className={styles.addTaskInput}
+              value={newTaskName}
+              onChange={e => setNewTaskName(e.target.value)}
+              autoFocus
             />
             <div className={styles.addTaskActions}>
               <button className={styles.confirmBtn} type="submit">Add</button>

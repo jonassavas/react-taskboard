@@ -124,7 +124,7 @@ function reducer(state: AppStore, action: Action): AppStore {
           ...board,
           taskGroups: updated.sort((a, b) => a.position - b.position),
         };
-    });
+      });
 
     case 'ADD_TASK':
       return updateLoadedBoard(state, action.payload.boardId, board => ({

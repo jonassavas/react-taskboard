@@ -114,8 +114,8 @@ export function AuthPage() {
             {isLoading
               ? 'Please wait…'
               : mode === 'login'
-              ? 'Sign in'
-              : 'Create account'}
+                ? 'Sign in'
+                : 'Create account'}
           </button>
         </form>
 

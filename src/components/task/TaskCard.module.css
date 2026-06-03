@@ -1,5 +1,6 @@
 .card {
-  background: #242424; /* or #ffffff in light mode */
+  background: #242424;
+  /* or #ffffff in light mode */
   border-radius: 10px;
 
   padding: 0.65rem 0.75rem;

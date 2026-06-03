@@ -142,7 +142,7 @@ export const tasksApi = {
       body: JSON.stringify(data),
     }),
 
-    reorder: (data: {
+  reorder: (data: {
     sourceGroupId: number;
     destinationGroupId: number;
     sourceTaskIds: number[];
