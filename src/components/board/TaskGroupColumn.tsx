@@ -142,7 +142,12 @@ export function TaskGroupColumn({
     transform: CSS.Translate.toString(transform),
     transition,
     opacity: isGroupDragging ? 0.3 : 1,
+
     ...(group.color ? { background: group.color } : {}),
+
+    ...(textColor
+      ? { ['--col-text' as any]: textColor }
+      : { ['--col-text' as any]: undefined }),
   }; 
 
   const sortedTasks = group.tasks; 
@@ -186,7 +191,11 @@ export function TaskGroupColumn({
         <div onPointerDown={e => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center' }}>
           <ColorPicker
             currentColor={group.color}
-            onSelect={color => onUpdateGroup(group.id, { color: color === null ? undefined : color })}
+            onSelect={color =>
+                onUpdateGroup(group.id, {
+                  color: color ?? null
+                })
+              } 
           />
           <button className={styles.deleteGroupBtn} onClick={() => onDeleteGroup(group.id)}>×</button>
         </div>

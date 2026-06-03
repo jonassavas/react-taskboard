@@ -200,3 +200,32 @@
   color: rgba(255, 255, 255, 0.3);
   background: #0e0e11;
 }
+
+.taskOverlay {
+  width: 280px;
+  background: #1e1e2a;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 0.6rem 0.75rem;
+
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.5);
+  transform: rotate(2deg);
+  opacity: 0.95;
+}
+
+.taskOverlayHandle {
+  opacity: 0.6;
+  font-size: 0.9rem;
+  cursor: grabbing;
+}
+
+.taskOverlayText {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.9);
+  flex: 1;
+  word-break: break-word;
+}

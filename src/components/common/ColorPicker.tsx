@@ -162,3 +162,4 @@ export function ColorPicker({ currentColor, onSelect }: Props) {
 }
 
 export { getContrastColor };
+

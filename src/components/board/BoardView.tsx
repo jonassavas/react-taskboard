@@ -56,7 +56,7 @@ export function BoardView() {
     boardsApi.getById(parsedBoardId)
       .then(board => {
         setBoardTitle(board.taskBoardName);
-        setSortedGroups(board.taskGroups || []);
+        setSortedGroups((board.taskGroups || []).map(normalizeGroup));
         setIsLoading(false);
       })
       .catch(err => {
@@ -76,6 +76,12 @@ export function BoardView() {
     })
   );
 
+  const normalizeGroup = (g: any): TaskGroup => ({
+  ...g,
+  color: g.color ?? null,
+  tasks: g.tasks ?? [],
+});
+
   // ─────────────────────────────────────────────
   // GROUP CRUD (FIXED: no refresh needed)
   // ─────────────────────────────────────────────
@@ -90,7 +96,14 @@ export function BoardView() {
         color: newGroupColor ?? undefined,
       });
 
-      setSortedGroups(prev => [...prev, { ...created, tasks: [] }]);
+      setSortedGroups(prev => [
+          ...prev,
+          {
+            ...created,
+            color: created.color ?? newGroupColor ?? null,
+            tasks: []
+          }
+        ]); 
 
       setNewGroupName('');
       setNewGroupColor(null);
@@ -447,7 +460,7 @@ export function BoardView() {
           </div>
         </SortableContext>
 
-       <DragOverlay dropAnimation={dropAnimation}>
+      <DragOverlay dropAnimation={dropAnimation}>
   {activeType === 'group' && activeGroup && (
     <div
       className={styles.columnOverlayPlaceholder}
@@ -465,16 +478,8 @@ export function BoardView() {
         flexDirection: 'column',
       }}
     >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          fontWeight: 700,
-          color: '#fff',
-          marginBottom: '0.75rem',
-        }}
-      >
-        ⠿ <span style={{ marginLeft: 8 }}>{activeGroup.taskGroupName}</span>
+      <div style={{ fontWeight: 700, color: '#fff', marginBottom: 12 }}>
+        ⠿ {activeGroup.taskGroupName}
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -488,9 +493,6 @@ export function BoardView() {
               color: '#aaa',
               border: '1px solid #2d2d3d',
               fontSize: '0.85rem',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
             }}
           >
             {t.taskName}
@@ -499,7 +501,17 @@ export function BoardView() {
       </div>
     </div>
   )}
-</DragOverlay>
+
+  {/* ✅ ADD THIS: TASK OVERLAY */}
+  {activeType === 'task' && activeTask && (
+    <div className={styles.taskOverlay}>
+      <div className={styles.taskOverlayHandle}>⠿</div>
+      <div className={styles.taskOverlayText}>
+        {activeTask.taskName}
+      </div>
+    </div>
+  )}
+</DragOverlay> 
       </DndContext>
     </div>
   );
